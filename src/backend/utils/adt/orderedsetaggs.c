@@ -29,6 +29,7 @@
 #include "utils/memutils.h"
 #include "utils/timestamp.h"
 #include "utils/tuplesort.h"
+#include "utils/datum.h"
 
 
 /*
@@ -548,6 +549,129 @@ timestamptz_lerp(Datum lo, Datum hi, double pct)
 #endif
 
 	return TimestampTzGetDatum(lo + mul_result);
+}
+
+typedef struct
+{
+	Datum           prev_value;             /* the target value at the prior row */
+	float8          tp;                     /* target position */
+	float8          ctp;                    /* ceiled target position */
+	float8          ftp;                    /* floored target position */
+	int64           rn;                     /* current row number */
+} PercentileInfo;
+
+static Datum
+percentile_cont_trans_common(FunctionCallInfo fcinfo,
+                             Oid expect_type,
+                             LerpFunc lerpfunc)
+{
+	int64                           rn;
+	PercentileInfo     *info;
+
+	if (!PG_ARGISNULL(0))
+		PG_RETURN_DATUM(PG_GETARG_DATUM(0));
+	/* Ignore NULL inputs for percentage and target value */
+	if (PG_ARGISNULL(1) || PG_ARGISNULL(2))
+		PG_RETURN_NULL();
+
+	if (!fcinfo->flinfo->fn_extra)
+	{
+		float8                          percentage = PG_GETARG_FLOAT8(1);
+		int64                           tc = PG_GETARG_INT64(3);
+
+		if (percentage < 0.0 || percentage > 1.0)
+			ereport(ERROR,
+					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+            		 errmsg("input is out of range"),
+            		 errhint("Argument to percentile function must be between 0.0 and 1.0.")));
+		info = (PercentileInfo *) MemoryContextAllocZero(
+				fcinfo->flinfo->fn_mcxt, sizeof(PercentileInfo));
+		info->tp = (tc - 1) * percentage + 1;
+		info->ftp = floor(info->tp);
+		info->ctp = ceil(info->tp);
+		info->rn = 1;
+		fcinfo->flinfo->fn_extra = info;
+	}
+	else
+		info = (PercentileInfo *) fcinfo->flinfo->fn_extra;
+
+	rn = info->rn;
+	info->rn ++;
+
+	if (rn == info->ftp && info->ftp == info->ctp)
+	{
+		/* Clean up, so the next group can see NULL for fn_extra */
+		pfree(info);
+		fcinfo->flinfo->fn_extra = NULL;
+
+		PG_RETURN_DATUM(PG_GETARG_DATUM(2));
+	}
+	else if (rn == info->ftp)
+	{
+		bool            byval;
+		int16           len;
+    	MemoryContext oldcontext;
+
+    	get_typlenbyval(expect_type, &len, &byval);
+
+		oldcontext = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
+		info->prev_value = datumCopy(PG_GETARG_DATUM(2), byval, len);
+		MemoryContextSwitchTo(oldcontext);
+	}
+	else if (rn == info->ctp)
+	{
+		Datum           prev = info->prev_value;
+		Datum           tv = PG_GETARG_DATUM(2);
+		Datum           val;
+		float8          tp = info->tp;
+		float8          ftp = info->ftp;
+		float8          proportion = tp - ftp;
+
+		/* Clean up, so the next group can see NULL for fn_extra */
+		pfree(info);
+		fcinfo->flinfo->fn_extra = NULL;
+
+		val = lerpfunc(prev, tv, proportion);
+		PG_RETURN_DATUM(val);
+	}
+
+	PG_RETURN_NULL();
+}
+
+/*
+ * percentile_cont(float8) within group (float8)	- continuous percentile
+ */
+Datum
+percentile_cont_float8_trans(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_trans_common(fcinfo, FLOAT8OID, float8_lerp);
+}
+
+/*
+ * percentile_cont(float8) within group (interval)	- continuous percentile
+ */
+Datum
+percentile_cont_interval_trans(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_trans_common(fcinfo, INTERVALOID, interval_lerp);
+}
+
+/*
+ * percentile_cont(float8) within group (timestamp)	- continuous percentile
+ */
+Datum
+percentile_cont_timestamp_trans(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_trans_common(fcinfo, TIMESTAMPOID, timestamp_lerp);
+}
+
+/*
+ * percentile_cont(float8) within group (timestamptz)	- continuous percentile
+ */
+Datum
+percentile_cont_timestamptz_trans(PG_FUNCTION_ARGS)
+{
+	return percentile_cont_trans_common(fcinfo, TIMESTAMPTZOID, timestamptz_lerp);
 }
 
 /*
