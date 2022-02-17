@@ -285,6 +285,11 @@ lazy_vacuum_rel_heap(Relation onerel, VacuumParams *params,
 	 */
 	if (params->is_wraparound && !aggressive)
 	{
+		if (onerel->rd_rel->relisshared)
+		{
+			vac_update_relstats(onerel, onerel->rd_rel->relpages, onerel->rd_rel->reltuples,onerel->rd_rel->relallvisible,
+					onerel->rd_rel->relhasindex, onerel->rd_rel->relfrozenxid, onerel->rd_rel->relminmxid, false, true);
+		}
 		ereport(DEBUG1,
 				(errmsg("skipping redundant vacuum to prevent wraparound of table \"%s.%s.%s\"",
 						get_database_name(MyDatabaseId),
