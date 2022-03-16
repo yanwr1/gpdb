@@ -982,11 +982,8 @@ ExecHashTableDestroy(HashState *hashState, HashJoinTable hashtable)
 	Assert(!hashtable->eagerlyReleased);
 
 	/*
-	 * Make sure all the temp files are closed.  We skip batch 0, since it
-	 * can't have any temp files (and the arrays might not even exist if
-	 * nbatch is only 1).  Parallel hash joins don't use these files.
-	 *
-	 * GPDB_12_MERGE_FIXME: In GPDB, we don't skip batch 0. Why?
+	 * Make sure all the temp files are closed.
+	 * GPDB supports rescan of hashjoin, the batch0 can still have temp files.
 	 */
 	if (hashtable->innerBatchFile != NULL)
 	{
@@ -2658,6 +2655,7 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
     int                 curbatch = hashtable->curbatch;
     HashJoinTableStats *stats = hashtable->stats;
     HashJoinBatchStats *batchstats = &stats->batchstats[curbatch];
+    int                 i;
     
     Assert(!hashtable->eagerlyReleased);
 
@@ -2674,10 +2672,9 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
     /* Final size of hash table for this batch */
     batchstats->hashspace_final = hashtable->spaceUsed;
 
-    /* Collect workfile I/O statistics. */
-	/* GPDB_12_MERGE_FIXME: broken */
-#if 0
-    if (hashtable->nbatch > 1)
+    /* Collect buffile I/O statistics. */
+    /* not needed for parallel case which uses shared tuplestores, they won't generate I/O */
+    if (hashtable->nbatch > 1 && hashtable->parallel_state == NULL)
     {
         uint64      owrbytes = 0;
         uint64      iwrbytes = 0;
@@ -2685,19 +2682,17 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
         Assert(stats->batchstats &&
                hashtable->nbatch <= stats->nbatchstats);
 
-        /* How much was read from inner workfile for current batch? */
+	/* How much was read from inner buffile for current batch? */
         batchstats->irdbytes = batchstats->innerfilesize;
 
-        /* How much was read from outer workfiles for current batch? */
+	/* How much was read from outer buffiles for current batch? */
 		if (hashtable->outerBatchFile &&
 			hashtable->outerBatchFile[curbatch] != NULL)
 		{
 			batchstats->ordbytes = BufFileSize(hashtable->outerBatchFile[curbatch]);
 		}
 
-		/*
-		 * How much was written to workfiles for the remaining batches?
-		 */
+		/* How much was written to workfiles for the remaining batches? */
 		for (i = curbatch + 1; i < hashtable->nbatch; i++)
 		{
 			HashJoinBatchStats *bs = &stats->batchstats[i];
@@ -2706,7 +2701,7 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 			if (hashtable->outerBatchFile &&
 				hashtable->outerBatchFile[i] != NULL)
 			{
-				filebytes = BufFileGetSize(hashtable->outerBatchFile[i]);
+				filebytes = BufFileSize(hashtable->outerBatchFile[i]);
 			}
 
 			Assert(filebytes >= bs->outerfilesize);
@@ -2718,7 +2713,7 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 			if (hashtable->innerBatchFile &&
 				hashtable->innerBatchFile[i])
 			{
-				filebytes = BufFileGetSize(hashtable->innerBatchFile[i]);
+				filebytes = BufFileSize(hashtable->innerBatchFile[i]);
 			}
 
 			Assert(filebytes >= bs->innerfilesize);
@@ -2727,23 +2722,22 @@ ExecHashTableExplainBatchEnd(HashState *hashState, HashJoinTable hashtable)
 		}
 		batchstats->owrbytes = owrbytes;
 		batchstats->iwrbytes = iwrbytes;
-    }                           /* give workfile I/O statistics */
+    }                           /* give buffile I/O statistics */
 
 	/* Collect hash chain statistics. */
 	stats->nonemptybatches++;
 	for (i = 0; i < hashtable->nbuckets; i++)
 	{
-		HashJoinTuple   hashtuple = hashtable->buckets[i];
+		HashJoinTuple   hashtuple = hashtable->buckets.unshared[i];
 		int             chainlength;
 
 		if (hashtuple)
 		{
-			for (chainlength = 0; hashtuple; hashtuple = hashtuple->next)
+			for (chainlength = 0; hashtuple; hashtuple = hashtuple->next.unshared)
 				chainlength++;
 			cdbexplain_agg_upd(&stats->chainlength, chainlength, i);
 		}
 	}
-#endif
 }                               /* ExecHashTableExplainBatchEnd */
 
 
