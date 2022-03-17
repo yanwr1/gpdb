@@ -2990,6 +2990,7 @@ select * from tbl1 join tprt on tbl1.col1 = tprt.col1;
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=2 loops=1)
    ->  Hash Join (actual rows=1 loops=1)
          Hash Cond: (tbl1.col1 = tprt_1.col1)
+         Extra Text: (seg0)   Hash chain length 1.0 avg, 1 max, using 3 of 524288 buckets.
          ->  Seq Scan on tbl1 (actual rows=1 loops=1)
          ->  Hash (actual rows=3 loops=1)
                Buckets: 524288  Batches: 1  Memory Usage: 4097kB
@@ -3054,6 +3055,7 @@ select * from tbl1 inner join tprt on tbl1.col1 = tprt.col1;
  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=1)
    ->  Hash Join (actual rows=2 loops=1)
          Hash Cond: (tbl1.col1 = tprt_1.col1)
+         Extra Text: (seg2)   Hash chain length 1.0 avg, 1 max, using 3 of 524288 buckets.
          ->  Seq Scan on tbl1 (actual rows=3 loops=1)
          ->  Hash (actual rows=3 loops=1)
                Buckets: 524288  Batches: 1  Memory Usage: 4097kB
