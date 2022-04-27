@@ -355,6 +355,7 @@ groups:
 {% endif %}
 {% if "centos7" in os_types %}
   - compile_gpdb_centos7
+  - test_sha256_centos7
 {% endif %}
 {% if "rhel8" in os_types %}
   - compile_gpdb_rhel8
@@ -615,6 +616,17 @@ resources:
     ignore_paths:
     - gpdb-doc/*
     - README*
+
+- name: gpdb_md5_src
+  type: git
+  source:
+    branch: ((gpdb-git-branch))
+    uri: ((gpdb-git-remote))
+    ignore_paths:
+    - gpdb-doc/*
+    - README*
+  version:
+    ref: d1d3a143cf1804552afedaa3be0ad54c14986605
 
 {% if "centos6" in os_types %}
 - name: previous_gpdb_rpm
@@ -909,6 +921,20 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     versioned_file: ((pipeline-name))/bin_gpdb_clients_centos7/bin_gpdb_clients.tar.gz
 
+- name: bin_gpdb_md5_centos7
+  type: gcs
+  source:
+    bucket: ((gcs-bucket-intermediates))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    versioned_file: ((pipeline-name))/bin_gpdb_md5_centos7/bin_gpdb.tar.gz
+
+- name: bin_gpdb_clients_md5_centos7
+  type: gcs
+  source:
+    bucket: ((gcs-bucket-intermediates))
+    json_key: ((concourse-gcs-resources-service-account-key))
+    versioned_file: ((pipeline-name))/bin_gpdb_clients_md5_centos7/bin_gpdb_clients.tar.gz
+
 {% if pipeline_configuration == "prod" %}
 - name: server-build-centos7
   type: gcs
@@ -1197,6 +1223,8 @@ jobs:
         passed:
           - check_format
         trigger: ((gpdb_src-trigger-flag))
+      - get: gpdb_md5_src
+        trigger: true
       - get: gpdb6-centos7-build
   - task: compile_gpdb
     image: gpdb6-centos7-build
@@ -1213,6 +1241,43 @@ jobs:
       - put: bin_gpdb_clients_centos7
         params:
           file: gpdb_artifacts/bin_gpdb_clients.tar.gz
+  - task: compile_gpdb_md5
+    image: gpdb6-centos7-build
+    file: gpdb_md5_src/concourse/tasks/compile_gpdb.yml
+    params:
+      CONFIGURE_FLAGS: ((configure_flags_with_extensions))
+      BLD_TARGETS: "clients"
+      RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
+    input_mapping:
+      gpdb_src: gpdb_md5_src
+  - in_parallel:
+      steps:
+      - put: bin_gpdb_md5_centos7
+        params:
+          file: gpdb_artifacts/bin_gpdb.tar.gz
+      - put: bin_gpdb_clients_md5_centos7
+        params:
+          file: gpdb_artifacts/bin_gpdb_clients.tar.gz
+
+- name: test_sha256_centos7
+  plan:
+    - in_parallel:
+        steps:
+          - get: gpdb_src
+            trigger: true
+            passed: [compile_gpdb_centos7]
+          - get: gpdb_md5_src
+            passed: [compile_gpdb_centos7]
+          - get: bin_gpdb
+            resource: bin_gpdb_centos7
+            passed: [compile_gpdb_centos7]
+          - get: bin_gpdb_clients
+            resource: bin_gpdb_clients_md5_centos7
+            passed: [compile_gpdb_centos7]
+          - get: gpdb6-centos7-test
+    - task: run_tests
+      image: gpdb6-centos7-test
+      file: gpdb_src/concourse/tasks/sha256_abi_test.yml
 
 {% endif %}
 {% if "photon3" in os_types %}

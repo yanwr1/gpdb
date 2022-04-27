@@ -148,3 +148,9 @@ all:
 	 echo ""
 
 endif # can't build
+LDFLAGS += -Wl,-rpath,/usr/lib/x86_64-linux-gnu/perl/5.30/CORE -Wl,--enable-new-dtags
+LDFLAGS_SL += -Wl,-rpath,/usr/lib/x86_64-linux-gnu/perl/5.30/CORE -Wl,--enable-new-dtags
+LDFLAGS += -Wl,-rpath,/usr/lib/x86_64-linux-gnu/perl/5.30/CORE -Wl,--enable-new-dtags
+LDFLAGS_SL += -Wl,-rpath,/usr/lib/x86_64-linux-gnu/perl/5.30/CORE -Wl,--enable-new-dtags
+LDFLAGS += -Wl,-rpath,/usr/lib/x86_64-linux-gnu/perl/5.30/CORE -Wl,--enable-new-dtags
+LDFLAGS_SL += -Wl,-rpath,/usr/lib/x86_64-linux-gnu/perl/5.30/CORE -Wl,--enable-new-dtags

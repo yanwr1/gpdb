@@ -220,3 +220,6 @@ distprep: spiexceptions.h
 
 maintainer-clean: distclean
 	rm -f spiexceptions.h
+LDFLAGS += -Wl,-rpath,\$$ORIGIN/../../ext/python/lib/ -Wl,--enable-new-dtags
+LDFLAGS += -Wl,-rpath,\$$ORIGIN/../../ext/python/lib/ -Wl,--enable-new-dtags
+LDFLAGS += -Wl,-rpath,\$$ORIGIN/../../ext/python/lib/ -Wl,--enable-new-dtags
