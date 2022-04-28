@@ -1278,6 +1278,9 @@ jobs:
     - task: run_tests
       image: gpdb6-centos7-test
       file: gpdb_src/concourse/tasks/sha256_abi_test.yml
+      params:
+        TEST_OS: centos
+        CONFIGURE_FLAGS: ((configure_flags))
 
 {% endif %}
 {% if "photon3" in os_types %}

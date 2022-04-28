@@ -45,10 +45,6 @@ function gen_env(){
 }
 
 function _main() {
-    if [ -z "${MAKE_TEST_COMMAND}" ]; then
-        echo "FATAL: MAKE_TEST_COMMAND is not set"
-        exit 1
-    fi
 
     if [ -z "$TEST_OS" ]; then
             echo "FATAL: TEST_OS is not set"
