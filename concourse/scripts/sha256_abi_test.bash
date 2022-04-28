@@ -9,6 +9,16 @@ function setup_gpadmin_user() {
     ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash "$TEST_OS"
 }
 
+function configure_md5() {
+      pushd gpdb_md5_src
+      # The full set of configure options which were used for building the
+      # tree must be used here as well since the toplevel Makefile depends
+      # on these options for deciding what to test. Since we don't ship
+      ./configure --prefix=/usr/local/greenplum-db-devel --disable-orca --enable-gpcloud --enable-mapreduce --enable-orafce --enable-tap-tests --with-gssapi --with-libxml --with-openssl --with-perl --with-python PYTHON=python3 PKG_CONFIG_PATH="${GPHOME}/lib/pkgconfig" ${CONFIGURE_FLAGS}
+
+      popd
+
+}
 function install_gpdb_clients() {
     mkdir -p /usr/local/greenplum-clients-devel
     tar -xzf bin_gpdb_clients/bin_gpdb_clients.tar.gz -C /usr/local/greenplum-clients-devel
@@ -64,6 +74,7 @@ function _main() {
     time install_and_configure_gpdb
     time setup_gpadmin_user
     time make_cluster
+    time configure_md5
     time install_gpdb_clients
     time gen_env
     time run_test
