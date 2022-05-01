@@ -32,7 +32,9 @@ function gen_env(){
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
 		source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
-                rm -rf src/test/authentication/t/*
+                cd src/test
+                make
+                rm -rf authentication/t/*
                 cp ../gpdb_md5_src/src/test/authentication/t/* src/test/authentication/t
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
