@@ -32,7 +32,7 @@ function gen_env(){
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
 		source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
-		cd "\${1}/gpdb_md5_src/src/test/authentication"
+		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
 		if [ $? -ne 0 ]
