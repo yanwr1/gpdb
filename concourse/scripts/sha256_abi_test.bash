@@ -32,6 +32,8 @@ function gen_env(){
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
 		source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
+                rm -rf src/test/authentication/t/*
+                cp ../gpdb_md5_src/src/test/authentication/t/* src/test/authentication/t
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
@@ -39,13 +41,13 @@ function gen_env(){
 		then
 				echo "test 001_password.pl failed"
 		fi
-		cd "\${1}/gpdb_md5_src/src/test/ssl"
+		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
 		if [ $? -ne 0 ]
 		then
 				echo "test 001_password.pl failed"
 		fi
-		cd "\${1}/gpdb_md5_src/src/test/regress"
+		cd "\${1}/gpdb_src/src/test/regress"
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
 		exit 0
@@ -73,7 +75,6 @@ function _main() {
     time install_and_configure_gpdb
     time setup_gpadmin_user
     time make_cluster
-    time configure_md5
     time install_gpdb_clients
     time gen_env
     time run_test
