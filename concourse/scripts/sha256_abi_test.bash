@@ -35,7 +35,7 @@ function gen_env(){
                 cd src/test
                 make
                 rm -rf authentication/t/*
-                cp ../gpdb_md5_src/src/test/authentication/t/* src/test/authentication/t
+                cp ../../../gpdb_md5_src/src/test/authentication/t/* src/test/authentication/t
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
