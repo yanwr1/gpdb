@@ -31,9 +31,13 @@ function gen_env(){
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
-                source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
-                ldd /usr/local/greenplum-clients-devel/bin/psql
+                which psql
                 ldd /usr/local/greenplum-db-devel/bin/psql
+                echo $LD_LIBRARY_PATH
+                source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
+                which psql
+                ldd /usr/local/greenplum-clients-devel/bin/psql
+                echo $LD_LIBRARY_PATH
                 cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin
                 ldd psql
                 ldd /usr/local/greenplum-db-devel/bin/psql
