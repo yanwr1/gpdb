@@ -31,6 +31,7 @@ function gen_env(){
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
+                source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
                 ldd /usr/local/greenplum-clients-devel/bin/psql
                 ldd /usr/local/greenplum-db-devel/bin/psql
                 cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin
@@ -38,8 +39,8 @@ function gen_env(){
                 ldd /usr/local/greenplum-db-devel/bin/psql
                 cd src/test/regress
                 make
-                rm -rf authentication/t/*
-                cp ../../../gpdb_md5_src/src/test/authentication/t/* authentication/t
+                rm -rf ../authentication/t/*
+                cp ../../../../gpdb_md5_src/src/test/authentication/t/* ../authentication/t
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
