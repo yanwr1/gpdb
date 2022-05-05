@@ -21,6 +21,7 @@ function configure_md5() {
 function install_gpdb_clients() {
     mkdir -p /usr/local/greenplum-clients-devel
     tar -xzf bin_gpdb_clients/bin_gpdb_clients.tar.gz -C /usr/local/greenplum-clients-devel
+    cd /usr/local/greenplum-clients-devel
     source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
     psql --version
     chown -R gpadmin:gpadmin /usr/local/greenplum-clients-devel
@@ -31,17 +32,11 @@ function gen_env(){
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
-                which psql
-                ldd /usr/local/greenplum-db-devel/bin/psql
-                echo $LD_LIBRARY_PATH
-                source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
+                cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
                 which psql
                 ldd /usr/local/greenplum-clients-devel/bin/psql
                 echo $LD_LIBRARY_PATH
-                cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin
-                ldd psql
-                ldd /usr/local/greenplum-db-devel/bin/psql
-                cd src/test/regress
+                cd "\${1}/gpdb_src/src/test/regress"
                 make
                 rm -rf ../authentication/t/*
                 cp ../../../../gpdb_md5_src/src/test/authentication/t/* ../authentication/t
