@@ -21,10 +21,11 @@ function configure_md5() {
 function install_gpdb_clients() {
     mkdir -p /usr/local/greenplum-clients-devel
     tar -xzf bin_gpdb_clients/bin_gpdb_clients.tar.gz -C /usr/local/greenplum-clients-devel
-    cd /usr/local/greenplum-clients-devel
+    pushd /usr/local/greenplum-clients-devel
     source /usr/local/greenplum-clients-devel/greenplum_clients_path.sh
     psql --version
     chown -R gpadmin:gpadmin /usr/local/greenplum-clients-devel
+    popd
 }
 
 function gen_env(){
