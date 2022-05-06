@@ -40,13 +40,16 @@ function gen_env(){
                 cd "\${1}/gpdb_src/src/test/regress"
                 make
                 rm -rf ../authentication/t/*
+                rm -rf ../ssl/t/*
                 cp ../../../../gpdb_md5_src/src/test/authentication/t/* ../authentication/t
+                cp ../../../../gpdb_md5_src/src/test/ssl/t/* ../ssl/t
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
 		if [ $? -ne 0 ]
 		then
-				echo "test 001_password.pl failed"
+				echo 'test 001_password.pl failed'
+                                exit 1
 		fi
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
