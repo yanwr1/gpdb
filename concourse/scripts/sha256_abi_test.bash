@@ -51,7 +51,6 @@ function gen_env(){
 		if [ \$? -ne 0 ]
 		then
 				echo 'test 001_password.pl failed'
-                                exit 1
 		fi
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check

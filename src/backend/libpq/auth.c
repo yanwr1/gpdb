@@ -1109,7 +1109,7 @@ CheckPWChallengeAuth(Port *port, char **logdetail)
 	 * If MD5 authentication is not allowed, always use SCRAM.  If the user
 	 * had an MD5 password, CheckSCRAMAuth() will fail.
 	 */
-	if (port->hba->auth_method == uaMD5 && pwtype == PASSWORD_TYPE_MD5)
+	if (port->hba->auth_method == uaMD5 && (pwtype == PASSWORD_TYPE_MD5 || pwtype == PASSWORD_TYPE_PLAINTEXT))
 	{
 		auth_result = CheckMD5Auth(port, shadow_pass, logdetail);
 	}

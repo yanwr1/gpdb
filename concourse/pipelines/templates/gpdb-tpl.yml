@@ -1267,8 +1267,31 @@ jobs:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_centos7]
-      - get: abi_test_src
-        resource: gpdb_src
+      - get: gpdb_md5_src
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb
+        resource: bin_gpdb_centos7
+        passed: [compile_gpdb_centos7]
+      - get: bin_gpdb_clients
+        resource: bin_gpdb_clients_md5_centos7
+        passed: [compile_gpdb_centos7]
+      - get: gpdb6-centos7-test
+  - task: run_tests
+    image: gpdb6-centos7-test
+    file: gpdb_src/concourse/tasks/sha256_abi_test.yml
+    params:
+      TEST_OS: centos
+      COPY_TEST: true
+    input_mapping:
+      abi_test_src: gpdb_src
+      tt_src: gpdb_md5_src
+      
+- name: abi_test_centos7
+  plan:
+  - in_parallel:
+      steps:
+      - get: gpdb_src
+        trigger: true
         passed: [compile_gpdb_centos7]
       - get: gpdb_md5_src
         passed: [compile_gpdb_centos7]
@@ -1284,35 +1307,8 @@ jobs:
     file: gpdb_src/concourse/tasks/sha256_abi_test.yml
     params:
       TEST_OS: centos
-      COPY_TEST: true
     input_mapping:
-      tt_src: gpdb_md5_src
-      
-- name: abi_test_centos7
-  plan:
-  - in_parallel:
-      steps:
-      - get: gpdb_src
-        trigger: true
-        passed: [compile_gpdb_centos7]
-      - get: abi_test_src
-        resource: gpdb_src
-        passed: [compile_gpdb_centos7]
-      - get: gpdb_md5_src
-        passed: [compile_gpdb_centos7]
-      - get: bin_gpdb
-        resource: bin_gpdb_centos7
-        passed: [compile_gpdb_centos7]
-      - get: bin_gpdb_clients
-        resource: bin_gpdb_clients_md5_centos7
-        passed: [compile_gpdb_centos7]
-      - get: gpdb6-centos7-test
-  - task: run_tests
-    image: gpdb6-centos7-test
-    file: gpdb_src/concourse/tasks/sha256_abi_test.yml
-    params:
-      TEST_OS: centos
-    input_mapping:
+      abi_test_src: gpdb_src
       gpdb_src: gpdb_md5_src
       tt_src: gpdb_md5_src
 
