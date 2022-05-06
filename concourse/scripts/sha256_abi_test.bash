@@ -28,25 +28,27 @@ function install_gpdb_clients() {
     popd
 }
 
+function copy_test_case(){
+    pushd gpdb_src
+    rm -rf src/test/authentication/t/*
+    cp ../tt_src/src/test/authentication/t/* src/test/authentication/t
+    rm -rf src/test/ssl/t/*
+    cp ../tt_src/src/test/ssl/t/* src/test/ssl/t
+    popd
+}
+
 function gen_env(){
   cat > /opt/run_test.sh <<-EOF
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
                 cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
-                which psql
-                ldd /usr/local/greenplum-clients-devel/bin/psql
-                echo $LD_LIBRARY_PATH
                 cd "\${1}/gpdb_src/src/test/regress"
                 make
-                rm -rf ../authentication/t/*
-                rm -rf ../ssl/t/*
-                cp ../../../../gpdb_md5_src/src/test/authentication/t/* ../authentication/t
-                cp ../../../../gpdb_md5_src/src/test/ssl/t/* ../ssl/t
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
-		if [ $? -ne 0 ]
+		if [ \$? -ne 0 ]
 		then
 				echo 'test 001_password.pl failed'
                                 exit 1
@@ -86,6 +88,9 @@ function _main() {
     time setup_gpadmin_user
     time make_cluster
     time install_gpdb_clients
+    if [ "${COPY_TEST}" == "true" ]; then
+	    time copy_test_case
+    fi
     time gen_env
     time run_test
 }
