@@ -356,6 +356,7 @@ groups:
 {% if "centos7" in os_types %}
   - compile_gpdb_centos7
   - test_sha256_centos7
+  - abi_test_centos7
 {% endif %}
 {% if "rhel8" in os_types %}
   - compile_gpdb_rhel8
