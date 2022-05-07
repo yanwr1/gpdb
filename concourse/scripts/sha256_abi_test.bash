@@ -48,20 +48,14 @@ function gen_env(){
 		cd "\${1}/gpdb_src/src/test/authentication"
                 pwd
 		make check
-		if [ \$? -ne 0 ]
-		then
-				echo 'test 001_password.pl failed'
-		fi
+		err1=\$?
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
-		if [ $? -ne 0 ]
-		then
-				echo "test 001_password.pl failed"
-		fi
+		err2=\$?
 		cd "\${1}/gpdb_src/src/test/regress"
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
-		exit 0
+		exit \$err1 || \$err2
 	EOF
 
 	chmod a+x /opt/run_test.sh
