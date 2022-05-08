@@ -34,6 +34,10 @@ function copy_test_case(){
     cp ../tt_src/src/test/authentication/t/* src/test/authentication/t
     rm -rf src/test/ssl/t/*
     cp ../tt_src/src/test/ssl/t/* src/test/ssl/t
+    rm -f src/test/regress/sql/password.sql
+    rm -f src/test/regress/expected/password.out
+    cp ../tt_src/src/test/regress/sql/password.sql src/test/regress/sql/
+    cp ../tt_src/src/test/regress/expected/password.out src/test/regress/expected/
     popd
 }
 
@@ -49,15 +53,12 @@ function gen_env(){
                 pwd
 		make check
 		err1=\$?
-                echo \$err1
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
 		err2=\$?
-                echo \$err2
 		cd "\${1}/gpdb_src/src/test/regress"
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
-                echo \$err1 || \$err2
 		exit \$err1 || \$err2
 	EOF
 
