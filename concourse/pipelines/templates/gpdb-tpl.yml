@@ -1400,7 +1400,6 @@ jobs:
     file: gpdb_src/concourse/tasks/sha256_abi_test.yml
     params:
       TEST_OS: centos
-      COPY_TEST: true
     input_mapping:
       abi_test_src: gpdb_src
       tt_src: gpdb_md5_src

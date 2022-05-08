@@ -49,12 +49,15 @@ function gen_env(){
                 pwd
 		make check
 		err1=\$?
+                echo \$err1
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
 		err2=\$?
+                echo \$err2
 		cd "\${1}/gpdb_src/src/test/regress"
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
+                echo \$err1 || \$err2
 		exit \$err1 || \$err2
 	EOF
 
