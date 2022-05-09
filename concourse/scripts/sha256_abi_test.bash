@@ -56,6 +56,8 @@ function gen_env(){
 		make check
 		err2=\$?
 		cd "\${1}/gpdb_src/src/test/regress"
+                which psql
+                ldd /usr/local/greenplum-db-devel/bin/psql
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
 		exit \$err1 || \$err2
