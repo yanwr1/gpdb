@@ -44,6 +44,7 @@ function gen_env(){
 		source gpAux/gpdemo/gpdemo-env.sh
                 cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
                 which psql
+                echo $LD_LIBRARY_PATH
                 ldd /usr/local/greenplum-clients-devel/bin/psql
                 cd "\${1}/gpdb_src/src/test/regress"
                 make
