@@ -55,6 +55,7 @@ function gen_env(){
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
 		err2=\$?
+                cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
 		cd "\${1}/gpdb_src/src/test/regress"
                 which psql
                 ldd /usr/local/greenplum-db-devel/bin/psql
