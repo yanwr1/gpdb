@@ -48,6 +48,7 @@ function gen_env(){
                 which psql
                 echo $LD_LIBRARY_PATH
                 ldd /usr/local/greenplum-clients-devel/bin/psql
+                cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin/ 
                 cd "\${1}/gpdb_src/src/test/regress"
                 make
 		cd "\${1}/gpdb_src/src/test/authentication"
