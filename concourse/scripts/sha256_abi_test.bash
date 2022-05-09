@@ -40,6 +40,8 @@ function copy_test_case(){
 function gen_env(){
   cat > /opt/run_test.sh <<-EOF
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
+                which psql
+                ldd /usr/local/greenplum-db-devel/bin/psql
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
                 cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
@@ -55,9 +57,9 @@ function gen_env(){
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
 		err2=\$?
-                cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
 		cd "\${1}/gpdb_src/src/test/regress"
                 which psql
+                echo $LD_LIBRARY_PATH
                 ldd /usr/local/greenplum-db-devel/bin/psql
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
