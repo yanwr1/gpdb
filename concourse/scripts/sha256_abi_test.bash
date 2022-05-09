@@ -9,15 +9,6 @@ function setup_gpadmin_user() {
     ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash "$TEST_OS"
 }
 
-function configure_md5() {
-      pushd gpdb_md5_src
-      # The full set of configure options which were used for building the
-      # tree must be used here as well since the toplevel Makefile depends
-      # on these options for deciding what to test. Since we don't ship
-      ./configure --prefix=/usr/local/greenplum-db-devel --with-perl --with-python --with-libxml --enable-mapreduce --enable-orafce --enable-tap-tests --disable-orca --with-openssl ${CONFIGURE_FLAGS}
-      popd
-
-}
 function install_gpdb_clients() {
     mkdir -p /usr/local/greenplum-clients-devel
     tar -xzf bin_gpdb_clients/bin_gpdb_clients.tar.gz -C /usr/local/greenplum-clients-devel
@@ -40,28 +31,19 @@ function copy_test_case(){
 function gen_env(){
   cat > /opt/run_test.sh <<-EOF
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
-                which psql
-                ldd /usr/local/greenplum-db-devel/bin/psql
+                cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
+                cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin/
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
-                cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
-                which psql
-                echo $LD_LIBRARY_PATH
-                ldd /usr/local/greenplum-clients-devel/bin/psql
-                cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin/ 
                 cd "\${1}/gpdb_src/src/test/regress"
                 make
 		cd "\${1}/gpdb_src/src/test/authentication"
-                pwd
 		make check
 		err1=\$?
 		cd "\${1}/gpdb_src/src/test/ssl"
 		make check
 		err2=\$?
 		cd "\${1}/gpdb_src/src/test/regress"
-                which psql
-                echo $LD_LIBRARY_PATH
-                ldd /usr/local/greenplum-db-devel/bin/psql
 		./pg_regress  --init-file=init_file password
 		[ -s regression.diffs ] && cat regression.diffs && exit 1
 		exit \$err1 || \$err2
