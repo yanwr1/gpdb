@@ -34,10 +34,6 @@ function copy_test_case(){
     cp ../tt_src/src/test/authentication/t/* src/test/authentication/t
     rm -rf src/test/ssl/t/*
     cp ../tt_src/src/test/ssl/t/* src/test/ssl/t
-    rm -f src/test/regress/sql/password.sql
-    rm -f src/test/regress/expected/password.out
-    cp ../tt_src/src/test/regress/sql/password.sql src/test/regress/sql/
-    cp ../tt_src/src/test/regress/expected/password.out src/test/regress/expected/
     popd
 }
 
@@ -47,6 +43,8 @@ function gen_env(){
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
                 cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
+                which psql
+                ldd /usr/local/greenplum-clients-devel/bin/psql
                 cd "\${1}/gpdb_src/src/test/regress"
                 make
 		cd "\${1}/gpdb_src/src/test/authentication"
