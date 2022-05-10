@@ -5380,6 +5380,23 @@ PostgresMain(int argc, char *argv[],
 						ereport(ERROR,
 								(errcode(ERRCODE_PROTOCOL_VIOLATION),
 								 errmsg("MPP protocol messages are only supported in QD - QE connections")));
+
+#ifdef FAULT_INJECTOR
+					/*
+					 * Manually increase trackedBytes of the QE process by 1 chunk, in this
+					 * way, the function VmemTracker_ReserveVmemChunks can be surely called,
+					 * when the QE goes further. For example, if trackedBytes is 1 chunk + 1
+					 * bytes and the total requested mem is less than 1 chunk in the QE,
+					 * it won't be able to triggter VmemTracker_ReserveVmemChunks when palloc
+					 * is called.
+					 */
+					if (SIMPLE_FAULT_INJECTOR("vmem_oom_set_tracked_bytes") == FaultInjectorTypeSkip)
+					{
+						VmemTracker_SetTrackedBytes(VmemTracker_GetReservedVmemBytes() + \
+							(1 << VmemTracker_GetChunkSizeInBits()));
+					}
+#endif
+
 					/*
 					 * QD performs the function body check, hence QE doesn't
 					 * need to do the check again. Turn off the check in QE

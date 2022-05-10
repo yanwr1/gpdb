@@ -28,6 +28,7 @@
 /* External dependencies within the runaway cleanup framework */
 extern bool vmemTrackerInited;
 extern volatile int32 *segmentVmemChunks;
+extern volatile int32 *freeWaivedVmemChunks;
 extern volatile EventVersion *CurrentVersion;
 extern volatile EventVersion *latestRunawayVersion;
 extern void RunawayCleaner_StartCleanup(void);

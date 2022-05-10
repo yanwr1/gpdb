@@ -268,6 +268,7 @@
 		"gp_vmem_limit_per_query",
 		"gp_vmem_protect_limit",
 		"gp_vmem_protect_segworker_cache_limit",
+		"gp_vmem_waiver_limit",
 		"gp_pause_on_restore_point_replay",
 		"gp_workfile_limit_per_segment",
 		"gp_workfile_max_entries",

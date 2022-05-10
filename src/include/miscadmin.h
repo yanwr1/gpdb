@@ -339,6 +339,7 @@ extern bool VacuumCostActive;
 extern double vacuum_cleanup_index_scale_factor;
 
 extern int gp_vmem_protect_limit;
+extern int gp_vmem_waiver_limit;
 extern int gp_vmem_protect_gang_cache_limit;
 
 /* in tcop/postgres.c */

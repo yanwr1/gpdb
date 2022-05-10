@@ -13,6 +13,7 @@
     will_be_called_with_sideeffect(ExceptionalCondition, &_ExceptionalCondition, NULL);\
 
 #define SEGMENT_VMEM_CHUNKS_TEST_VALUE 100
+#define SEGMENT_FREE_WAIVED_VMEM_CHUNKS_TEST_VALUE 100
 
 #undef PG_RE_THROW
 #define PG_RE_THROW() siglongjmp(*PG_exception_stack, 1)
@@ -30,6 +31,8 @@ void _ExceptionalCondition()
 
 /* segmentVmemChunks pointer uses the address of this global variable */
 static int32 fakeSegmentVmemChunks = 0;
+
+static int32 fakeSegmentFreeWaivedVmemChunks = 0;
 
 /*
  * A global variable to save the trackedBytes just before VmemTracker_ReserveVmem
@@ -85,15 +88,20 @@ void VmemTrackerTestSetup(void **state)
 
 	/* 8GB default VMEM */
 	gp_vmem_protect_limit = 8192;
+	/* 5MB default waived VMEM */
+	gp_vmem_waiver_limit = 5;
 	/* Disable runaway detector */
 	runaway_detector_activation_percent = 100;
 
 	will_return(ShmemInitStruct, &fakeSegmentVmemChunks);
 	will_assign_value(ShmemInitStruct, foundPtr, found);
 
-	expect_any_count(ShmemInitStruct, name, 1);
-	expect_any_count(ShmemInitStruct, size, 1);
-	expect_any_count(ShmemInitStruct, foundPtr, 1);
+	will_return(ShmemInitStruct, &fakeSegmentFreeWaivedVmemChunks);
+	will_assign_value(ShmemInitStruct, foundPtr, found);
+
+	expect_any_count(ShmemInitStruct, name, 2);
+	expect_any_count(ShmemInitStruct, size, 2);
+	expect_any_count(ShmemInitStruct, foundPtr, 2);
 
 	will_be_called(EventVersion_ShmemInit);
 	will_be_called(RedZoneHandler_ShmemInit);
@@ -410,7 +418,8 @@ void test__VmemTracker_ShmemInit__InitSegmentVmemLimitUnderPostmaster(void **sta
 }
 
 /*
- * Checks if we attach segmentVmemLimit properly and initialize it to 0.
+ * Checks if we attach segmentVmemLimit and segmentFreeWaivedVmemChunks properly,
+ * and initialize them to 0 and 5 respectly.
  */
 static
 void test__VmemTracker_ShmemInit__InitSegmentVmemLimitInPostmaster(void **state)
@@ -421,13 +430,17 @@ void test__VmemTracker_ShmemInit__InitSegmentVmemLimitInPostmaster(void **state)
 
 	bool found = false;
 	static int32 tempSegmentVmemChunks = SEGMENT_VMEM_CHUNKS_TEST_VALUE;
-	expect_any(ShmemInitStruct, name);
-	expect_any(ShmemInitStruct, size);
-	expect_any(ShmemInitStruct, foundPtr);
+	static int32 tempSegmentFreeWaivedVmemChunks = SEGMENT_FREE_WAIVED_VMEM_CHUNKS_TEST_VALUE;
+	expect_any_count(ShmemInitStruct, name, 2);
+	expect_any_count(ShmemInitStruct, size, 2);
+	expect_any_count(ShmemInitStruct, foundPtr, 2);
 	will_assign_value(ShmemInitStruct, foundPtr, found);
 	will_return(ShmemInitStruct, &tempSegmentVmemChunks);
+	will_assign_value(ShmemInitStruct, foundPtr, found);
+	will_return(ShmemInitStruct, &tempSegmentFreeWaivedVmemChunks);
 
 	assert_true(segmentVmemChunks == &fakeSegmentVmemChunks);
+	assert_true(segmentFreeWaivedVmemChunks == &fakeSegmentFreeWaivedVmemChunks);
 
 	will_be_called(EventVersion_ShmemInit);
 	will_be_called(RedZoneHandler_ShmemInit);
@@ -444,25 +457,33 @@ void test__VmemTracker_ShmemInit__InitSegmentVmemLimitInPostmaster(void **state)
 			*segmentVmemChunks != SEGMENT_VMEM_CHUNKS_TEST_VALUE &&
 			*segmentVmemChunks == 0);
 
+	assert_true(segmentFreeWaivedVmemChunks == &tempSegmentFreeWaivedVmemChunks &&
+			segmentFreeWaivedVmemChunks != &fakeSegmentFreeWaivedVmemChunks &&
+			*segmentFreeWaivedVmemChunks != SEGMENT_FREE_WAIVED_VMEM_CHUNKS_TEST_VALUE &&
+			*segmentFreeWaivedVmemChunks == 5);
+
 	Assert(!vmemTrackerInited);
 }
 
-/* Helper method to set the segment and session vmem limit to desired values */
+/* Helper method to set the segment, session, and free waived vmem limit to desired values */
 static
-void SetVmemLimit(int32 newSegmentVmemLimitMB, int32 newSessionVmemLimitMB)
+void SetVmemLimit(int32 newSegmentVmemLimitMB, int32 newSessionVmemLimitMB, int32 newSegmentFreeWaivedVmemLimitMB)
 {
 	static int32 tempSegmentVmemChunks = 0;
+	static int32 tempSegmentFreeWaivedVmemChunks = 0;
 
 	/* Keep the assertions happy */
 	vmemTrackerInited = false;
 	chunkSizeInBits = BITS_IN_MB;
 
-	expect_any(ShmemInitStruct, name);
-	expect_any(ShmemInitStruct, size);
-	expect_any(ShmemInitStruct, foundPtr);
+	expect_any_count(ShmemInitStruct, name, 2);
+	expect_any_count(ShmemInitStruct, size, 2);
+	expect_any_count(ShmemInitStruct, foundPtr, 2);
 	bool found = false;
 	will_assign_value(ShmemInitStruct, foundPtr, found);
 	will_return(ShmemInitStruct, &tempSegmentVmemChunks);
+	will_assign_value(ShmemInitStruct, foundPtr, found);
+	will_return(ShmemInitStruct, &tempSegmentFreeWaivedVmemChunks);
 
 	will_be_called(EventVersion_ShmemInit);
 	will_be_called(RedZoneHandler_ShmemInit);
@@ -473,10 +494,12 @@ void SetVmemLimit(int32 newSegmentVmemLimitMB, int32 newSessionVmemLimitMB)
 	gp_vmem_protect_limit = newSegmentVmemLimitMB;
 	/* Session vmem limit is in kB unit */
 	gp_vmem_limit_per_query = newSessionVmemLimitMB * 1024;
+	gp_vmem_waiver_limit = newSegmentFreeWaivedVmemLimitMB;
 	VmemTracker_ShmemInit();
 
 	assert_true(chunkSizeInBits >= BITS_IN_MB && vmemChunksQuota == MB_TO_CHUNKS(newSegmentVmemLimitMB));
 	assert_true(chunkSizeInBits >= BITS_IN_MB && maxChunksPerQuery == MB_TO_CHUNKS(newSessionVmemLimitMB));
+	assert_true(chunkSizeInBits >= BITS_IN_MB && *segmentFreeWaivedVmemChunks == MB_TO_CHUNKS(newSegmentFreeWaivedVmemLimitMB));
 }
 
 /*
@@ -486,51 +509,58 @@ void SetVmemLimit(int32 newSegmentVmemLimitMB, int32 newSessionVmemLimitMB)
 static
 void test__VmemTracker_ShmemInit__QuotaCalculation(void **state)
 {
-	SetVmemLimit(0, 1024);
+	SetVmemLimit(0, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / 1024));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit);
 
-	SetVmemLimit(1024 * 8, 1024);
+	SetVmemLimit(1024 * 8, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / 1024));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit);
 
-	SetVmemLimit(1024 * 16 + 1, 1024);
+	SetVmemLimit(1024 * 16 + 1, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB + 1);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit / 2);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / (1024 * 2)));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit/2);
 
-	SetVmemLimit(1024 * 32, 1024);
+	SetVmemLimit(1024 * 32, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB + 1);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit / 2);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / (1024 * 2)));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit/2);
 
 	/*
 	 * After one integer division of (32GB + 1) by 2 would still be 16GB, so
 	 * only 1 shifting would happen
 	 */
-	SetVmemLimit(1024 * 32 + 1, 1024);
+	SetVmemLimit(1024 * 32 + 1, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB + 1);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit / 2);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / (1024 * 2)));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit/2);
 
 	/*
 	 * After one integer division of (32GB + 2) by 2 would still be 16GB + 1, so
 	 * 2 shifting would happen
 	 */
-	SetVmemLimit(1024 * 32 + 2, 1024);
+	SetVmemLimit(1024 * 32 + 2, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB + 2);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit / 4);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / (1024 * 4)));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit/4);
 
-	SetVmemLimit(1024 * 64 + 4, 1024);
+	SetVmemLimit(1024 * 64 + 4, 1024, 5);
 	assert_true(chunkSizeInBits == BITS_IN_MB + 3);
 	assert_true(vmemChunksQuota == gp_vmem_protect_limit / 8);
 	assert_true(maxChunksPerQuery == (gp_vmem_limit_per_query / (1024 * 8)));
+	assert_true(*segmentFreeWaivedVmemChunks == gp_vmem_waiver_limit/8);
 
 	/* Reset to default for future test sanity */
-	SetVmemLimit(8 * 1024, 0);
+	SetVmemLimit(8 * 1024, 0, 5);
 }
 
 /*
@@ -608,6 +638,7 @@ void test__VmemTracker_RequestWaiver__WaiveEnforcement(void **state)
 	int64 oldTrackedBytes = trackedBytes;
 	int oldVmemChunksQuota = vmemChunksQuota;
 	int oldWaivedChunks = waivedChunks;
+	int oldFreeWaivedVmemChunks = *segmentFreeWaivedVmemChunks;
 
 
 	/* 1 more byte will fail */
@@ -623,6 +654,8 @@ void test__VmemTracker_RequestWaiver__WaiveEnforcement(void **state)
 	assert_true(vmemChunksQuota == oldVmemChunksQuota);
 	/* 1 extra waived chunks */
 	assert_true(oldWaivedChunks + 1 == waivedChunks);
+	/* segmentFreeWaivedVmemChunks should be changed accordingly */
+	assert_true(oldFreeWaivedVmemChunks - 1 == *segmentFreeWaivedVmemChunks);
 
 	/* A whole chunk should now succeed using the additional waiver */
 	status = VmemTracker_ReserveVmem(CHUNKS_TO_BYTES(1));
@@ -658,6 +691,15 @@ void test__VmemTracker_RequestWaiver__WaiveEnforcement(void **state)
 	/* We allocated two additional waiver chunks after exhausting vmemChunksQuota */
 	assert_true(trackedBytes == CHUNKS_TO_BYTES(vmemChunksQuota + 3) - 1);
 
+	int oldFreeWaivedVmemChunks2 = *segmentFreeWaivedVmemChunks;
+
+	/* The request is not granted if it request's chunks larger than *segmentFreeWaivedVmemChunks */
+	VmemTracker_RequestWaiver(CHUNKS_TO_BYTES(10));
+	/* Should be unchanged to the maximum reserved waiver */
+	assert_true(waivedChunks == 2);
+	/* segmentFreeWaivedVmemChunks should be unchanged */
+	assert_true(oldFreeWaivedVmemChunks2 == *segmentFreeWaivedVmemChunks);
+
 	/*
 	 * We allocated two chunks in the waiver zone after exhausting the quota.
 	 * We free those, and 1 additional chunk to test resetting of waiver
@@ -665,12 +707,16 @@ void test__VmemTracker_RequestWaiver__WaiveEnforcement(void **state)
 	VmemTracker_ReleaseVmem(CHUNKS_TO_BYTES(3));
 	/* We don't change waiver unless we are able to satisfy the request from the vmemChunksQuota */
 	assert_true(waivedChunks == 2);
+	/* We first release the usedWaivedChunks if we are releasing some vmem chunks */
+	assert_true(usedWaivedChunks == 0);
 	assert_true(vmemChunksQuota == oldVmemChunksQuota);
 	assert_true(trackedVmemChunks == vmemChunksQuota - 1);
 
 	/* This should reset the waivedChunks as a new chunk will be allocated within the vmem limit */
 	VmemTracker_ReserveVmem(CHUNKS_TO_BYTES(1));
 	assert_true(waivedChunks == 0);
+	/* All requested waived chunks should be returned to *segmentFreeWaivedVmemChunks */
+	assert_true(oldFreeWaivedVmemChunks == *segmentFreeWaivedVmemChunks);
 }
 
 int

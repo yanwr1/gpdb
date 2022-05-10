@@ -63,6 +63,7 @@ extern MemoryAllocationStatus VmemTracker_ReserveVmem(int64 newly_requested);
 extern void VmemTracker_ReleaseVmem(int64 to_be_freed_requested);
 extern MemoryAllocationStatus VmemTracker_RegisterStartupMemory(int64 bytes);
 extern void VmemTracker_UnregisterStartupMemory(void);
+extern bool VmemTracker_HasFreeWaivedVmemChunks(void);
 extern void VmemTracker_RequestWaiver(int64 waiver_bytes);
 extern void VmemTracker_ResetWaiver(void);
 
@@ -77,5 +78,9 @@ extern void RedZoneHandler_LogVmemUsageOfAllSessions(void);
 extern void IdleTracker_ActivateProcess(void);
 extern void IdleTracker_DeactivateProcess(void);
 extern bool VmemTrackerIsActivated(void);
+
+#ifdef FAULT_INJECTOR
+extern void VmemTracker_SetTrackedBytes(int32 newTrackedBytes);
+#endif
 
 #endif   /* VMEMTRACKER_H */

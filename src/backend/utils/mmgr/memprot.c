@@ -315,7 +315,15 @@ static void gp_failed_to_alloc(MemoryAllocationStatus ec, int en, int sz)
 	}
 	else if (ec == MemoryFailure_VmemExhausted)
 	{
-		elog(LOG, "Logging memory usage for reaching Vmem limit");
+		/*
+		 * If no available waived chunks left, write_stderr should be used to
+		 * prevent the QE from stucking in "gp_malloc_internal -> gp_failed_to_alloc
+		 * -> gp_malloc_internal" infinite loop.
+		 */
+		if (VmemTracker_HasFreeWaivedVmemChunks())
+			elog(LOG, "Logging memory usage for reaching Vmem limit");
+		else
+			write_stderr("Logging memory usage for reaching Vmem limit\n");
 	}
 	else if (ec == MemoryFailure_SystemMemoryExhausted)
 	{
@@ -330,7 +338,15 @@ static void gp_failed_to_alloc(MemoryAllocationStatus ec, int en, int sz)
 	}
 	else if (ec == MemoryFailure_ResourceGroupMemoryExhausted)
 	{
-		elog(LOG, "Logging memory usage for reaching resource group limit");
+		/*
+		 * If no available waived chunks left, write_stderr should be used to
+		 * prevent the QE from stucking in "gp_malloc_internal -> gp_failed_to_alloc
+		 * -> gp_malloc_internal" infinite loop.
+		 */
+		if (VmemTracker_HasFreeWaivedVmemChunks())
+			elog(LOG, "Logging memory usage for reaching resource group limit");
+		else
+			write_stderr("Logging memory usage for reaching resource group limit\n");
 	}
 	else
 		elog(ERROR, "Unknown memory failure error code");

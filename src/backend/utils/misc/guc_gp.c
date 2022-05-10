@@ -3707,6 +3707,16 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
+		{"gp_vmem_waiver_limit", PGC_POSTMASTER, RESOURCES_MEM,
+			gettext_noop("Virtual memory limit (in MB) reserved for waiver."),
+			NULL,
+		},
+		&gp_vmem_waiver_limit,
+		5, 0, 10,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"runaway_detector_activation_percent", PGC_POSTMASTER, RESOURCES_MEM,
 			gettext_noop("The runaway detector activates if the used vmem exceeds this percentage of the vmem quota. Set to 100 to disable runaway detection."),
 			NULL,

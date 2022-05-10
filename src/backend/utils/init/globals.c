@@ -184,4 +184,5 @@ bool	pljava_classpath_insecure = false;
 
 /* Memory protection GUCs*/
 int gp_vmem_protect_limit = 8192;
+int gp_vmem_waiver_limit = 5;
 int gp_vmem_protect_gang_cache_limit = 500;
