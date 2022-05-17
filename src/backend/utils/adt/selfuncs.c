@@ -4694,8 +4694,11 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 				child_rte = root->simple_rte_array[childrel->relid];
 
 				Assert(child_rte != NULL);
+				if (var->varattno != 0)
+				{
 				const char *attname = get_relid_attribute_name(rte->relid, var->varattno);
 				AttrNumber child_attno = get_attnum(child_rte->relid, attname);
+				}
 
 				/*
 				 * Get statistics from the child partition.
