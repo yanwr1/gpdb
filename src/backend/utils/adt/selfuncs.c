@@ -4686,6 +4686,7 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 		{
 			RelOptInfo *childrel = largest_child_relation(root, rel->cheapest_total_path, false);
 			vardata->statsTuple = NULL;
+			AttrNumber child_attno = InvalidAttrNumber;
 
 			if (childrel)
 			{
@@ -4697,7 +4698,7 @@ examine_simple_variable(PlannerInfo *root, Var *var,
 				if (var->varattno != 0)
 				{
 				const char *attname = get_relid_attribute_name(rte->relid, var->varattno);
-				AttrNumber child_attno = get_attnum(child_rte->relid, attname);
+				child_attno = get_attnum(child_rte->relid, attname);
 				}
 
 				/*
