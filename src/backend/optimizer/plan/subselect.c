@@ -3014,6 +3014,7 @@ finalize_plan(PlannerInfo *root, Plan *plan,
 
 		case T_PartitionSelector:
 			/* GPDB_12_MERGE_FIXME: need to do something with the paramid here? */
+			finalize_primnode((Node *) ((PartitionSelector *)plan)->part_prune_info, &context);
 			break;
 			
 		case T_RecursiveUnion:
