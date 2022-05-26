@@ -3013,7 +3013,7 @@ finalize_plan(PlannerInfo *root, Plan *plan,
 			break;
 
 		case T_PartitionSelector:
-			/* GPDB_12_MERGE_FIXME: need to do something with the paramid here? */
+
 			break;
 			
 		case T_RecursiveUnion:
