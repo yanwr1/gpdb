@@ -390,9 +390,9 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 				table_access_method_clause name cursor_name file_name
 				index_name opt_index_name cluster_index_specification
 
-%type <list>	func_name handler_name qual_Op qual_all_Op subquery_Op
-				opt_class opt_inline_handler opt_validator validator_clause
-				opt_collate
+%type <list>	func_name handler_name insert_target_list qual_Op qual_all_Op
+                subquery_Op opt_class opt_inline_handler opt_validator
+                validator_clause opt_collate
 
 %type <range>	qualified_name insert_target OptConstrFromTable
 
@@ -13572,16 +13572,24 @@ cdb_string:
  *****************************************************************************/
 
 InsertStmt:
-			opt_with_clause INSERT INTO insert_target insert_rest
+			opt_with_clause INSERT INTO insert_target_list insert_rest
 			opt_on_conflict returning_clause
 				{
-					$5->relation = $4;
+					$5->relations = $4;
 					$5->onConflictClause = $6;
 					$5->returningList = $7;
 					$5->withClause = $1;
 					$$ = (Node *) $5;
 				}
 		;
+
+insert_target_list:
+               insert_target           { $$ = list_make1($1); }
+             | insert_target_list ',' insert_target
+			 {
+				 $$ = lappend($1, $3);
+			 }
+        ;
 
 /*
  * Can't easily make AS optional here, because VALUES in insert_rest would

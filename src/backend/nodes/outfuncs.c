@@ -4037,7 +4037,7 @@ _outInsertStmt(StringInfo str, const InsertStmt *node)
 {
 	WRITE_NODE_TYPE("INSERT");
 
-	WRITE_NODE_FIELD(relation);
+	WRITE_NODE_FIELD(relations);
 	WRITE_NODE_FIELD(cols);
 	WRITE_NODE_FIELD(selectStmt);
 	WRITE_NODE_FIELD(returningList);

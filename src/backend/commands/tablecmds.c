@@ -15884,7 +15884,7 @@ build_ctas_with_dist(Relation rel, DistributedBy *dist_clause,
 	{
 		InsertStmt *i = makeNode(InsertStmt);
 
-		i->relation = tmprel;
+		i->relations = list_make1(tmprel);
 		i->selectStmt = (Node *)s;
 		n = (Node *)i;
 	}

@@ -3700,7 +3700,7 @@ raw_expression_tree_walker(Node *node,
 			{
 				InsertStmt *stmt = (InsertStmt *) node;
 
-				if (walker(stmt->relation, context))
+				if (walker(stmt->relations, context))
 					return true;
 				if (walker(stmt->cols, context))
 					return true;

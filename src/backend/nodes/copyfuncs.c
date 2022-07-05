@@ -3641,7 +3641,7 @@ _copyInsertStmt(const InsertStmt *from)
 {
 	InsertStmt *newnode = makeNode(InsertStmt);
 
-	COPY_NODE_FIELD(relation);
+	COPY_NODE_FIELD(relations);
 	COPY_NODE_FIELD(cols);
 	COPY_NODE_FIELD(selectStmt);
 	COPY_NODE_FIELD(onConflictClause);

@@ -1604,7 +1604,7 @@ typedef struct RawStmt
 typedef struct InsertStmt
 {
 	NodeTag		type;
-	RangeVar   *relation;		/* relation to insert into */
+	List       *relations;		/* relation to insert into */
 	List	   *cols;			/* optional: names of the target columns */
 	Node	   *selectStmt;		/* the source SELECT/VALUES, or NULL */
 	OnConflictClause *onConflictClause; /* ON CONFLICT clause */

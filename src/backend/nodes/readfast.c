@@ -404,7 +404,7 @@ _readInsertStmt(void)
 {
 	READ_LOCALS(InsertStmt);
 
-	READ_NODE_FIELD(relation);
+	READ_NODE_FIELD(relations);
 	READ_NODE_FIELD(cols);
 	READ_NODE_FIELD(selectStmt);
 	READ_NODE_FIELD(returningList);

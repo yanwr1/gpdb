@@ -665,7 +665,7 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 	targetPerms = ACL_INSERT;
 	if (isOnConflictUpdate)
 		targetPerms |= ACL_UPDATE;
-	qry->resultRelation = setTargetTable(pstate, stmt->relation,
+	qry->resultRelation = setTargetTable(pstate, (RangeVar *) linitial(stmt->relations),
 										 false, false, targetPerms);
 
 	/* Validate stmt->cols list, or build default list if no list given */
