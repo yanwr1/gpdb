@@ -94,6 +94,7 @@ ExecWorkTableScan(PlanState *pstate)
 	 * there are corner cases where we'll get the init call before the
 	 * RecursiveUnion does.)
 	 */
+	/*
 	if (node->rustate == NULL)
 	{
 		WorkTableScan *plan = (WorkTableScan *) node->ss.ps.plan;
@@ -112,14 +113,14 @@ ExecWorkTableScan(PlanState *pstate)
 		 * RecursiveUnion node.  Note this depends on the assumption that
 		 * RecursiveUnion doesn't allow projection.
 		 */
-		ExecAssignScanType(&node->ss,
+	/*	ExecAssignScanType(&node->ss,
 						   ExecGetResultType(&node->rustate->ps));
 
 		/*
 		 * Now we can initialize the projection info.  This must be completed
 		 * before we can call ExecScan().
 		 */
-		ExecAssignScanProjectionInfo(&node->ss);
+	/*	ExecAssignScanProjectionInfo(&node->ss);
 	}
 
 	if (node->readptr == -1)
@@ -129,12 +130,12 @@ ExecWorkTableScan(PlanState *pstate)
 		else
 		{
 			/* Create my own read pointer, and ensure it is at start */
-			node->readptr = tuplestore_alloc_read_pointer(node->rustate->working_table, EXEC_FLAG_REWIND);
+	/*		node->readptr = tuplestore_alloc_read_pointer(node->rustate->working_table, EXEC_FLAG_REWIND);
 			tuplestore_select_read_pointer(node->rustate->working_table, node->readptr);
 			tuplestore_rescan(node->rustate->working_table);
 		}
 		node->rustate->refcount++;
-	}
+	}*/
 
 	return ExecScan(&node->ss,
 					(ExecScanAccessMtd) WorkTableScanNext,
@@ -150,6 +151,7 @@ WorkTableScanState *
 ExecInitWorkTableScan(WorkTableScan *node, EState *estate, int eflags)
 {
 	WorkTableScanState *scanstate;
+	ParamExecData *param;
 
 	/* check for unsupported flags */
 	/*
@@ -171,8 +173,19 @@ ExecInitWorkTableScan(WorkTableScan *node, EState *estate, int eflags)
 	scanstate->ss.ps.plan = (Plan *) node;
 	scanstate->ss.ps.state = estate;
 	scanstate->ss.ps.ExecProcNode = ExecWorkTableScan;
-	scanstate->rustate = NULL;	/* we'll set this later */
-	scanstate->readptr = -1; /* we'll set this later */
+
+	param = &(estate->es_param_exec_vals[node->wtParam]);
+	Assert(param->execPlan == NULL);
+	Assert(!param->isnull);
+	scanstate->rustate = castNode(RecursiveUnionState, DatumGetPointer(param->value));
+	if (scanstate->rustate->refcount == 0)
+		scanstate->readptr = 0;
+	else
+		scanstate->readptr = tuplestore_alloc_read_pointer(scanstate->rustate->working_table, EXEC_FLAG_REWIND);
+	scanstate->rustate->refcount++;
+
+	//scanstate->rustate = NULL;	/* we'll set this later */
+	//scanstate->readptr = -1; /* we'll set this later */
 
 	/*
 	 * Miscellaneous initialization
