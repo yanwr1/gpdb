@@ -1337,7 +1337,7 @@ typedef struct MergeAppendState
  *
  *		recursing			T when we're done scanning the non-recursive term
  *		intermediate_empty	T if intermediate_table is currently empty
- *		refcount		number of WorkTableScans which will scan the working table
+ *		refcount 			number of WorkTableScans which will scan the working table
  *		working_table		working table (to be scanned by recursive term)
  *		intermediate_table	current recursive output (next generation of WT)
  * ----------------
@@ -1347,7 +1347,7 @@ typedef struct RecursiveUnionState
 	PlanState	ps;				/* its first field is NodeTag */
 	bool		recursing;
 	bool		intermediate_empty;
-	int		refcount;
+	int			refcount;
 	Tuplestorestate *working_table;
 	Tuplestorestate *intermediate_table;
 	/* Remaining fields are unused in UNION ALL case */
@@ -2016,7 +2016,7 @@ typedef struct NamedTuplestoreScanState
 typedef struct WorkTableScanState
 {
 	ScanState	ss;				/* its first field is NodeTag */
-	int		readptr;			/* index of work table's tuplestore read pointer */
+	int			readptr;		/* index of work table's tuplestore read pointer */
 	RecursiveUnionState *rustate;
 } WorkTableScanState;
 
