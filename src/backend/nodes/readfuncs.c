@@ -363,6 +363,7 @@ _readQuery(void)
 	READ_NODE_FIELD(constraintDeps);
     READ_NODE_FIELD(withCheckOptions);
     local_node->intoPolicy = NULL;
+    READ_NODE_FIELD(multi_insert_result_relations);
     READ_BOOL_FIELD(parentStmtType);
     READ_LOCATION_FIELD(stmt_location);
     READ_LOCATION_FIELD(stmt_len);

@@ -213,6 +213,11 @@ typedef struct Query
 	struct GpPolicy *intoPolicy;
 
 	/*
+	 * HackDay TODO: add comments
+	 */
+	List *multi_insert_result_relations;
+
+	/*
 	 * GPDB: Used to indicate this query is part of CTAS or COPY so that its plan
 	 * would always be dispatched in parallel.
 	 */

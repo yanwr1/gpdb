@@ -520,6 +520,7 @@ _outQuery(StringInfo str, Query *node)
 	WRITE_NODE_FIELD(rowMarks);
 	WRITE_NODE_FIELD(setOperations);
 	WRITE_NODE_FIELD(constraintDeps);
+	WRITE_NODE_FIELD(multi_insert_result_relations);
 	WRITE_BOOL_FIELD(parentStmtType);
 
 	/* Don't serialize policy */

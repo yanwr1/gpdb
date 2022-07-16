@@ -26,6 +26,7 @@
 
 #include "postgres.h"
 
+#include "access/table.h"
 #include "access/sysattr.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_type.h"
@@ -667,6 +668,44 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		targetPerms |= ACL_UPDATE;
 	qry->resultRelation = setTargetTable(pstate, (RangeVar *) linitial(stmt->relations),
 										 false, false, targetPerms);
+
+	/*
+	 * HackDay TODO: add more comments here
+	 */
+	if (list_length(stmt->relations) > 1)
+	{
+		ListCell     *lc = NULL;
+		List         *oids = NIL;
+		RangeVar     *rv;
+		Relation      r;
+		int           i;
+
+		foreach_with_count(lc, stmt->relations, i)
+		{
+			/* The first relation is locked above. */
+			if (i == 0)
+				continue;
+
+			rv = (RangeVar *) lfirst(lc);
+			r = heap_openrv(rv, RowExclusiveLock);
+			oids = lappend_oid(oids, RelationGetRelid(r));
+			/*
+			 * HackDay TODO:
+			 *  1. check policy the same as qry->resultRelation
+			 *  2. check table def is the same
+			 *  3. check if paritition table?
+			 *  4. check triggers? ....
+			 *
+			 *  Also, spike later if we need to wrap this into
+			 *  an extra function, we include a new header file
+			 *  due to use of heap_openrv here.
+			 */
+
+			table_close(r, NoLock);
+		}
+
+		qry->multi_insert_result_relations = oids;
+	}
 
 	/* Validate stmt->cols list, or build default list if no list given */
 	icolumns = checkInsertTargets(pstate, stmt->cols, &attrnos);

@@ -3620,6 +3620,7 @@ _copyQuery(const Query *from)
 	COPY_LOCATION_FIELD(stmt_len);
 	COPY_SCALAR_FIELD(parentStmtType);
 	COPY_NODE_FIELD(intoPolicy);
+	COPY_NODE_FIELD(multi_insert_result_relations);
 
 	return newnode;
 }

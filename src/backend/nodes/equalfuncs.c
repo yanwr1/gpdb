@@ -1056,6 +1056,7 @@ _equalQuery(const Query *a, const Query *b)
 	if (!GpPolicyEqual(a->intoPolicy, b->intoPolicy))
 		return false;
 
+	COMPARE_NODE_FIELD(multi_insert_result_relations);
 	COMPARE_SCALAR_FIELD(parentStmtType);
 
 	return true;
