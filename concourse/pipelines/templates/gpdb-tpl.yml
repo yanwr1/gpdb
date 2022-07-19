@@ -355,26 +355,26 @@ groups:
   jobs:
 {% if "centos6" in os_types %}
   - compile_gpdb_centos6
-  - sha256_abi_test1_centos6
-  - sha256_abi_test2_centos6
+  - sha256_abi_test_clients_without_sha256_centos6
+  - sha256_abi_test_src_without_sha256_centos6
 {% endif %}
 {% if "centos7" in os_types %}
   - compile_gpdb_centos7
-  - sha256_abi_test1_centos7
-  - sha256_abi_test2_centos7
+  - sha256_abi_test_clients_without_sha256_centos7
+  - sha256_abi_test_src_without_sha256_centos7
 {% endif %}
 {% if "rhel8" in os_types %}
   - compile_gpdb_rhel8
-  - sha256_abi_test1_rhel8
-  - sha256_abi_test2_rhel8
+  - sha256_abi_test_clients_without_sha256_rhel8
+  - sha256_abi_test_src_without_sha256_rhel8
 {% endif %}
 {% if "photon3" in os_types %}
   - compile_gpdb_photon3
 {% endif %}
 {% if "ubuntu18.04" in os_types %}
   - compile_gpdb_ubuntu18.04
-  - sha256_abi_test1_ubuntu18.04
-  - sha256_abi_test2_ubuntu18.04
+  - sha256_abi_test_clients_without_sha256_ubuntu18.04
+  - sha256_abi_test_src_without_sha256_ubuntu18.04
 {% endif %}
 {% if "sles12" in os_types %}
   - compile_gpdb_sles12
@@ -631,7 +631,7 @@ resources:
     - gpdb-doc/*
     - README*
 
-- name: gpdb_md5_src
+- name: gpdb_src_without_sha256
   type: git
   source:
     branch: ((gpdb-git-branch))
@@ -754,19 +754,19 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     versioned_file: ((pipeline-name))/bin_gpdb_clients_centos6/bin_gpdb_clients.tar.gz
 
-- name: bin_gpdb_md5_centos6
+- name: bin_gpdb_centos6_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_md5_centos6/bin_gpdb.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_centos6_without_sha256/bin_gpdb.tar.gz
 
-- name: bin_gpdb_clients_md5_centos6
+- name: bin_gpdb_clients_centos6_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_clients_md5_centos6/bin_gpdb_clients.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_clients_centos6_without_sha256/bin_gpdb_clients.tar.gz
 
 {% if pipeline_configuration == "prod" %}
 - name: server-build-centos6
@@ -949,19 +949,19 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     versioned_file: ((pipeline-name))/bin_gpdb_clients_centos7/bin_gpdb_clients.tar.gz
 
-- name: bin_gpdb_md5_centos7
+- name: bin_gpdb_centos7_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_md5_centos7/bin_gpdb.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_centos7_without_sha256/bin_gpdb.tar.gz
 
-- name: bin_gpdb_clients_md5_centos7
+- name: bin_gpdb_clients_centos7_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_clients_md5_centos7/bin_gpdb_clients.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_clients_centos7_without_sha256/bin_gpdb_clients.tar.gz
 
 {% if pipeline_configuration == "prod" %}
 - name: server-build-centos7
@@ -988,19 +988,19 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     versioned_file: ((pipeline-name))/bin_gpdb_clients_rhel8/bin_gpdb_clients.tar.gz
 
-- name: bin_gpdb_md5_rhel8
+- name: bin_gpdb_rhel8_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_md5_rhel8/bin_gpdb.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_rhel8_without_sha256/bin_gpdb.tar.gz
 
-- name: bin_gpdb_clients_md5_rhel8
+- name: bin_gpdb_clients_rhel8_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_clients_md5_rhel8/bin_gpdb_clients.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_clients_rhel8_without_sha256/bin_gpdb_clients.tar.gz
 
 {% if pipeline_configuration == "prod" %}
 - name: server-build-rhel8
@@ -1027,19 +1027,19 @@ resources:
     json_key: ((concourse-gcs-resources-service-account-key))
     versioned_file: ((pipeline-name))/bin_gpdb_clients_ubuntu18.04/bin_gpdb_clients.tar.gz
 
-- name: bin_gpdb_md5_ubuntu18.04
+- name: bin_gpdb_ubuntu18.04_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_md5_ubuntu18.04/bin_gpdb.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_ubuntu18.04_without_sha256/bin_gpdb.tar.gz
 
-- name: bin_gpdb_clients_md5_ubuntu18.04
+- name: bin_gpdb_clients_ubuntu18.04_without_sha256
   type: gcs
   source:
     bucket: ((gcs-bucket-intermediates))
     json_key: ((concourse-gcs-resources-service-account-key))
-    versioned_file: ((pipeline-name))/bin_gpdb_clients_md5_ubuntu18.04/bin_gpdb_clients.tar.gz
+    versioned_file: ((pipeline-name))/bin_gpdb_clients_ubuntu18.04_without_sha256/bin_gpdb_clients.tar.gz
 
 {% if pipeline_configuration == "prod" %}
 - name: server-build-ubuntu18.04
@@ -1248,7 +1248,7 @@ jobs:
         passed:
           - check_format
         trigger: ((gpdb_src-trigger-flag))
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         trigger: true
       - get: reduced-frequency-trigger
         trigger: ((reduced-frequency-trigger-flag))
@@ -1268,38 +1268,38 @@ jobs:
       - put: bin_gpdb_clients_centos6
         params:
           file: gpdb_artifacts/bin_gpdb_clients.tar.gz
-  - task: compile_gpdb_md5
+  - task: compile_gpdb_without_sha256
     image: gpdb6-centos6-build
-    file: gpdb_md5_src/concourse/tasks/compile_gpdb.yml
+    file: gpdb_src_without_sha256/concourse/tasks/compile_gpdb.yml
     params:
       CONFIGURE_FLAGS: ((configure_flags_with_extensions))
       BLD_TARGETS: "clients"
       RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
     input_mapping:
-      gpdb_src: gpdb_md5_src
+      gpdb_src: gpdb_src_without_sha256
   - in_parallel:
       steps:
-      - put: bin_gpdb_md5_centos6
+      - put: bin_gpdb_centos6_without_sha256
         params:
           file: gpdb_artifacts/bin_gpdb.tar.gz
-      - put: bin_gpdb_clients_md5_centos6
+      - put: bin_gpdb_clients_centos6_without_sha256
         params:
           file: gpdb_artifacts/bin_gpdb_clients.tar.gz
 
-- name: sha256_abi_test1_centos6
+- name: sha256_abi_test_clients_without_sha256_centos6
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_centos6]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_centos6]
       - get: bin_gpdb
         resource: bin_gpdb_centos6
         passed: [compile_gpdb_centos6]
       - get: bin_gpdb_clients
-        resource: bin_gpdb_clients_md5_centos6
+        resource: bin_gpdb_clients_centos6_without_sha256
         passed: [compile_gpdb_centos6]
       - get: gpdb6-centos6-test
   - task: run_tests
@@ -1310,19 +1310,19 @@ jobs:
       COPY_TEST: true
     input_mapping:
       abi_test_src: gpdb_src
-      tt_src: gpdb_md5_src
+      tt_src: gpdb_src_without_sha256
 
-- name: sha256_abi_test2_centos6
+- name: sha256_abi_test_src_without_sha256_centos6
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_centos6]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_centos6]
       - get: bin_gpdb
-        resource: bin_gpdb_md5_centos6
+        resource: bin_gpdb_centos6_without_sha256
         passed: [compile_gpdb_centos6]
       - get: bin_gpdb_clients
         resource: bin_gpdb_clients_centos6
@@ -1335,8 +1335,8 @@ jobs:
       TEST_OS: centos
     input_mapping:
       abi_test_src: gpdb_src
-      gpdb_src: gpdb_md5_src
-      tt_src: gpdb_md5_src
+      gpdb_src: gpdb_src_without_sha256
+      tt_src: gpdb_src_without_sha256
 
 {% endif %}
 {% if "centos7" in os_types %}
@@ -1350,7 +1350,7 @@ jobs:
         passed:
           - check_format
         trigger: ((gpdb_src-trigger-flag))
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         trigger: true
       - get: gpdb6-centos7-build
   - task: compile_gpdb
@@ -1368,38 +1368,38 @@ jobs:
       - put: bin_gpdb_clients_centos7
         params:
           file: gpdb_artifacts/bin_gpdb_clients.tar.gz
-  - task: compile_gpdb_md5
+  - task: compile_gpdb_without_sha256
     image: gpdb6-centos7-build
-    file: gpdb_md5_src/concourse/tasks/compile_gpdb.yml
+    file: gpdb_src_without_sha256/concourse/tasks/compile_gpdb.yml
     params:
       CONFIGURE_FLAGS: ((configure_flags_with_extensions))
       BLD_TARGETS: "clients"
       RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
     input_mapping:
-      gpdb_src: gpdb_md5_src
+      gpdb_src: gpdb_src_without_sha256
   - in_parallel:
       steps:
-      - put: bin_gpdb_md5_centos7
+      - put: bin_gpdb_centos7_without_sha256
         params:
           file: gpdb_artifacts/bin_gpdb.tar.gz
-      - put: bin_gpdb_clients_md5_centos7
+      - put: bin_gpdb_clients_centos7_without_sha256
         params:
           file: gpdb_artifacts/bin_gpdb_clients.tar.gz
 
-- name: sha256_abi_test1_centos7
+- name: sha256_abi_test_clients_without_sha256_centos7
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_centos7]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_centos7]
       - get: bin_gpdb
         resource: bin_gpdb_centos7
         passed: [compile_gpdb_centos7]
       - get: bin_gpdb_clients
-        resource: bin_gpdb_clients_md5_centos7
+        resource: bin_gpdb_clients_centos7_without_sha256
         passed: [compile_gpdb_centos7]
       - get: gpdb6-centos7-test
   - task: run_tests
@@ -1410,19 +1410,19 @@ jobs:
       COPY_TEST: true
     input_mapping:
       abi_test_src: gpdb_src
-      tt_src: gpdb_md5_src 
+      tt_src: gpdb_src_without_sha256 
 
-- name: sha256_abi_test2_centos7
+- name: sha256_abi_test_src_without_sha256_centos7
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_centos7]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_centos7]
       - get: bin_gpdb
-        resource: bin_gpdb_md5_centos7
+        resource: bin_gpdb_centos7_without_sha256
         passed: [compile_gpdb_centos7]
       - get: bin_gpdb_clients
         resource: bin_gpdb_clients_centos7
@@ -1435,8 +1435,8 @@ jobs:
       TEST_OS: centos
     input_mapping:
       abi_test_src: gpdb_src
-      gpdb_src: gpdb_md5_src
-      tt_src: gpdb_md5_src
+      gpdb_src: gpdb_src_without_sha256
+      tt_src: gpdb_src_without_sha256
 
 
 {% endif %}
@@ -1499,7 +1499,7 @@ jobs:
             passed:
               - check_format
             trigger: ((gpdb_src-trigger-flag))
-          - get: gpdb_md5_src
+          - get: gpdb_src_without_sha256
             trigger: true
           - get: gpdb6-rhel8-build
     - task: compile_gpdb
@@ -1517,21 +1517,21 @@ jobs:
           - put: bin_gpdb_clients_rhel8
             params:
               file: gpdb_artifacts/bin_gpdb_clients.tar.gz
-    - task: compile_gpdb_md5
+    - task: compile_gpdb_without_sha256
       image: gpdb6-rhel8-build
-      file: gpdb_md5_src/concourse/tasks/compile_gpdb.yml
+      file: gpdb_src_without_sha256/concourse/tasks/compile_gpdb.yml
       params:
         CONFIGURE_FLAGS: ((configure_flags_with_extensions))
         BLD_TARGETS: "clients"
         RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
       input_mapping:
-        gpdb_src: gpdb_md5_src
+        gpdb_src: gpdb_src_without_sha256
     - in_parallel:
         steps:
-          - put: bin_gpdb_md5_rhel8
+          - put: bin_gpdb_rhel8_without_sha256
             params:
               file: gpdb_artifacts/bin_gpdb.tar.gz
-          - put: bin_gpdb_clients_md5_rhel8
+          - put: bin_gpdb_clients_rhel8_without_sha256
             params:
               file: gpdb_artifacts/bin_gpdb_clients.tar.gz
 
@@ -1553,20 +1553,20 @@ jobs:
       image: gpdb6-rhel8-build
       file: gpdb_src/concourse/tasks/test_gpdb_clients.yml
 
-- name: sha256_abi_test1_rhel8
+- name: sha256_abi_test_clients_without_sha256_rhel8
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_rhel8]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_rhel8]
       - get: bin_gpdb
         resource: bin_gpdb_rhel8
         passed: [compile_gpdb_rhel8]
       - get: bin_gpdb_clients
-        resource: bin_gpdb_clients_md5_rhel8
+        resource: bin_gpdb_clients_rhel8_without_sha256
         passed: [compile_gpdb_rhel8]
       - get: gpdb6-rhel8-test
   - task: run_tests
@@ -1577,19 +1577,19 @@ jobs:
       COPY_TEST: true
     input_mapping:
       abi_test_src: gpdb_src
-      tt_src: gpdb_md5_src
+      tt_src: gpdb_src_without_sha256
 
-- name: sha256_abi_test2_rhel8
+- name: sha256_abi_test_src_without_sha256_rhel8
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_rhel8]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_rhel8]
       - get: bin_gpdb
-        resource: bin_gpdb_md5_rhel8
+        resource: bin_gpdb_rhel8_without_sha256
         passed: [compile_gpdb_rhel8]
       - get: bin_gpdb_clients
         resource: bin_gpdb_clients_rhel8
@@ -1602,8 +1602,8 @@ jobs:
       TEST_OS: centos
     input_mapping:
       abi_test_src: gpdb_src
-      gpdb_src: gpdb_md5_src
-      tt_src: gpdb_md5_src
+      gpdb_src: gpdb_src_without_sha256
+      tt_src: gpdb_src_without_sha256
 
 {% endif %}
 {% if "ubuntu18.04" in os_types %}
@@ -1617,7 +1617,7 @@ jobs:
           passed:
             - check_format
           trigger: ((gpdb_src-trigger-flag))
-        - get: gpdb_md5_src
+        - get: gpdb_src_without_sha256
           trigger: true
         - get: gpdb6-ubuntu18.04-build
     - task: compile_gpdb
@@ -1635,38 +1635,38 @@ jobs:
         - put: bin_gpdb_clients_ubuntu18.04
           params:
             file: gpdb_artifacts/bin_gpdb_clients.tar.gz
-    - task: compile_gpdb_md5
+    - task: compile_gpdb_without_sha256
       image: gpdb6-ubuntu18.04-build
-      file: gpdb_md5_src/concourse/tasks/compile_gpdb.yml
+      file: gpdb_src_without_sha256/concourse/tasks/compile_gpdb.yml
       params:
         CONFIGURE_FLAGS: ((configure_flags_with_extensions))
         BLD_TARGETS: "clients"
         RC_BUILD_TYPE_GCS: ((rc-build-type-gcs))
       input_mapping:
-        gpdb_src: gpdb_md5_src
+        gpdb_src: gpdb_src_without_sha256
     - in_parallel:
         steps:
-        - put: bin_gpdb_md5_ubuntu18.04
+        - put: bin_gpdb_ubuntu18.04_without_sha256
           params:
             file: gpdb_artifacts/bin_gpdb.tar.gz
-        - put: bin_gpdb_clients_md5_ubuntu18.04
+        - put: bin_gpdb_clients_ubuntu18.04_without_sha256
           params:
             file: gpdb_artifacts/bin_gpdb_clients.tar.gz
 
-- name: sha256_abi_test1_ubuntu18.04
+- name: sha256_abi_test_clients_without_sha256_ubuntu18.04
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_ubuntu18.04]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_ubuntu18.04]
       - get: bin_gpdb
         resource: bin_gpdb_ubuntu18.04
         passed: [compile_gpdb_ubuntu18.04]
       - get: bin_gpdb_clients
-        resource: bin_gpdb_clients_md5_ubuntu18.04
+        resource: bin_gpdb_clients_ubuntu18.04_without_sha256
         passed: [compile_gpdb_ubuntu18.04]
       - get: gpdb6-ubuntu18.04-test
   - task: run_tests
@@ -1677,19 +1677,19 @@ jobs:
       COPY_TEST: true
     input_mapping:
       abi_test_src: gpdb_src
-      tt_src: gpdb_md5_src
+      tt_src: gpdb_src_without_sha256
 
-- name: sha256_abi_test2_ubuntu18.04
+- name: sha256_abi_test_src_without_sha256_ubuntu18.04
   plan:
   - in_parallel:
       steps:
       - get: gpdb_src
         trigger: true
         passed: [compile_gpdb_ubuntu18.04]
-      - get: gpdb_md5_src
+      - get: gpdb_src_without_sha256
         passed: [compile_gpdb_ubuntu18.04]
       - get: bin_gpdb
-        resource: bin_gpdb_md5_ubuntu18.04
+        resource: bin_gpdb_ubuntu18.04_without_sha256
         passed: [compile_gpdb_ubuntu18.04]
       - get: bin_gpdb_clients
         resource: bin_gpdb_clients_ubuntu18.04
@@ -1702,8 +1702,8 @@ jobs:
       TEST_OS: ubuntu
     input_mapping:
       abi_test_src: gpdb_src
-      gpdb_src: gpdb_md5_src
-      tt_src: gpdb_md5_src
+      gpdb_src: gpdb_src_without_sha256
+      tt_src: gpdb_src_without_sha256
 
 {% endif %}
 

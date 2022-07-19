@@ -31,12 +31,12 @@ function copy_test_case(){
 function gen_env(){
   cat > /opt/run_test.sh <<-EOF
 		source /usr/local/greenplum-db-devel/greenplum_path.sh
-                cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
-                cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin/
+		cd /usr/local/greenplum-clients-devel && source greenplum_clients_path.sh
+		cp /usr/local/greenplum-clients-devel/bin/psql /usr/local/greenplum-db-devel/bin/
 		cd "\${1}/gpdb_src"
 		source gpAux/gpdemo/gpdemo-env.sh
-                cd "\${1}/gpdb_src/src/test/regress"
-                make
+		cd "\${1}/gpdb_src/src/test/regress"
+		make
 		cd "\${1}/gpdb_src/src/test/authentication"
 		make check
 		err1=\$?
