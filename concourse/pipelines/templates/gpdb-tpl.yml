@@ -1310,7 +1310,7 @@ jobs:
       COPY_TEST: true
     input_mapping:
       abi_test_src: gpdb_src
-      tt_src: gpdb_src_without_sha256
+      tt_src: gpdb_src
 
 - name: sha256_abi_test_src_without_sha256_centos6
   plan:
