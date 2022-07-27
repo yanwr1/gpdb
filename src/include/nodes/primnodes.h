@@ -1691,4 +1691,9 @@ typedef struct DMLActionExpr
 	Expr        xpr;
 } DMLActionExpr;
 
+typedef struct InsertTargetExpr
+{
+	Expr		xpr;
+} InsertTargetExpr;
+
 #endif							/* PRIMNODES_H */

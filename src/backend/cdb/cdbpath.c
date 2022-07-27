@@ -713,6 +713,37 @@ make_motion_path(PlannerInfo *root, Path *subpath,
 	return pathnode;
 }
 
+static SplitInsertPath *
+make_splitinsert_path(PlannerInfo *root, Path *subpath, Index rti)
+{
+	PathTarget    *pathtarget;
+	SplitInsertPath *splitinsertpath;
+	InsertTargetExpr *relidExpr;
+
+	relidExpr = makeNode(InsertTargetExpr);
+	pathtarget = copy_pathtarget(subpath->pathtarget);
+	add_column_to_pathtarget(pathtarget, (Expr *)relidExpr, 0);
+
+	splitinsertpath = makeNode(SplitInsertPath);
+	splitinsertpath->path.pathtype = T_SplitInsert;
+	splitinsertpath->path.parent = subpath->parent;
+	splitinsertpath->path.pathtarget = pathtarget;
+	splitinsertpath->path.param_info = NULL;
+	splitinsertpath->path.parallel_aware = false;
+	splitinsertpath->path.parallel_safe = subpath->parallel_safe;
+	splitinsertpath->path.parallel_workers = subpath->parallel_workers;
+	splitinsertpath->path.rows = subpath->rows * (list_length(root->parse->multi_insert_result_relations) + 1);
+	splitinsertpath->path.startup_cost = subpath->startup_cost;
+	splitinsertpath->path.total_cost = subpath->total_cost;
+	splitinsertpath->path.pathkeys = subpath->pathkeys;
+	splitinsertpath->path.locus = subpath->locus;
+	splitinsertpath->subpath = subpath;
+	splitinsertpath->resultRelation = rti;
+	splitinsertpath->multiTarget = root->parse->multi_insert_result_relations;
+
+	return splitinsertpath;
+}
+
 /*
  * cdbpath_match_preds_to_partkey_tail
  *
@@ -2269,6 +2300,12 @@ create_motion_path_for_ctas(PlannerInfo *root, GpPolicy *policy, Path *subpath)
 	}
 	else
 		return create_motion_path_for_insert(root, policy, subpath);
+}
+
+Path *
+create_split_insert_path(PlannerInfo *root, GpPolicy *policy, Path *subpath, Index rti)
+{
+	return (Path *)make_splitinsert_path(root, subpath, rti);
 }
 
 /*

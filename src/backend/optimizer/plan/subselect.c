@@ -3128,6 +3128,7 @@ finalize_plan(PlannerInfo *root, Plan *plan,
 		case T_SetOp:
 		case T_SplitUpdate:
 		case T_TupleSplit:
+		case T_SplitInsert:
 			/* no node-type-specific fields need fixing */
 			break;
 

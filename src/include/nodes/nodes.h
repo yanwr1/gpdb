@@ -109,6 +109,7 @@ typedef enum NodeTag
 	T_SplitUpdate,
 	T_AssertOp,
 	T_PartitionSelector,
+	T_SplitInsert,
 	T_Plan_End,
 	/* these aren't subclasses of Plan: */
 	T_NestLoopParam,
@@ -254,6 +255,7 @@ typedef enum NodeTag
 	T_RowIdExpr,
 	T_DistributedBy,
 	T_DMLActionExpr,
+	T_InsertTargetExpr,
 
 	/*
 	 * TAGS FOR EXPRESSION STATE NODES (execnodes.h)
@@ -346,6 +348,7 @@ typedef enum NodeTag
 	T_SplitUpdatePath,
     T_CdbRelColumnInfo,
 	T_DistributionKey,
+	T_SplitInsertPath,
 
 	/*
 	 * TAGS FOR MEMORY NODES (memnodes.h)

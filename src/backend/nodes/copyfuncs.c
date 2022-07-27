@@ -1627,6 +1627,27 @@ _copySplitUpdate(const SplitUpdate *from)
 }
 
 /*
+ * _copySplitInsert
+ */
+static SplitInsert *
+_copySplitInsert(const SplitInsert * from)
+{
+	SplitInsert *newnode = makeNode(SplitInsert);
+
+	CopyPlanFields((Plan *) from, (Plan *) newnode);
+
+	COPY_SCALAR_FIELD(insertTargetColIdx);
+	COPY_NODE_FIELD(insertTargetRelid);
+
+	COPY_SCALAR_FIELD(numHashSegments);
+        COPY_SCALAR_FIELD(numHashAttrs);
+        COPY_POINTER_FIELD(hashAttnos, from->numHashAttrs * sizeof(AttrNumber));
+        COPY_POINTER_FIELD(hashFuncs, from->numHashAttrs * sizeof(Oid));
+
+	return newnode;
+}
+
+/*
  * _copyAssertOp
  */
 static AssertOp *
@@ -3545,6 +3566,13 @@ _copyDMLActionExpr(const DMLActionExpr *from)
 {
 	DMLActionExpr *newnode = makeNode(DMLActionExpr);
 
+	return newnode;
+}
+
+static InsertTargetExpr *
+_copyInsertTargetExpr(const InsertTargetExpr *from)
+{
+	InsertTargetExpr *newnode = makeNode(InsertTargetExpr);
 	return newnode;
 }
 
@@ -5999,6 +6027,9 @@ copyObjectImpl(const void *from)
 		case T_SplitUpdate:
 			retval = _copySplitUpdate(from);
 			break;
+		case T_SplitInsert:
+			retval = _copySplitInsert(from);
+			break;
 		case T_AssertOp:
 			retval = _copyAssertOp(from);
 			break;
@@ -6713,6 +6744,9 @@ copyObjectImpl(const void *from)
 			break;
 		case T_DMLActionExpr:
 			retval = _copyDMLActionExpr(from);
+			break;
+		case T_InsertTargetExpr:
+			retval = _copyInsertTargetExpr(from);
 			break;
 		case T_RangeTblEntry:
 			retval = _copyRangeTblEntry(from);

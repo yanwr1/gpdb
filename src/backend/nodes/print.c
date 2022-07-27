@@ -581,6 +581,8 @@ plannode_type(Plan *p)
 			return "FOREIGNSCAN";
 		case T_SplitUpdate:
 			return "SPLITUPDATE";
+		case T_SplitInsert:
+			return "SPLITINSERT";
 		default:
 			return "UNKNOWN";
 	}

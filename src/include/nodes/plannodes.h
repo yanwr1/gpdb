@@ -1471,6 +1471,22 @@ typedef struct SplitUpdate
 } SplitUpdate;
 
 /*
+ * SplitInsert Node
+ */
+typedef struct SplitInsert
+{
+	Plan		plan;
+	AttrNumber	insertTargetColIdx;
+	List		*insertTargetRelid;
+
+
+	int		numHashAttrs;
+	AttrNumber  	*hashAttnos;
+	Oid		*hashFuncs;
+	int		numHashSegments;
+} SplitInsert;
+
+/*
  * AssertOp Node
  *
  */

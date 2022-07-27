@@ -121,6 +121,7 @@ static Plan *create_unique_plan(PlannerInfo *root, UniquePath *best_path,
 								int flags);
 static Plan *create_motion_plan(PlannerInfo *root, CdbMotionPath *path);
 static Plan *create_splitupdate_plan(PlannerInfo *root, SplitUpdatePath *path);
+static Plan *create_splitinsert_plan(PlannerInfo *root, SplitInsertPath *path);
 static Gather *create_gather_plan(PlannerInfo *root, GatherPath *best_path);
 static Plan *create_projection_plan(PlannerInfo *root,
 									ProjectionPath *best_path,
@@ -566,6 +567,9 @@ create_plan_recurse(PlannerInfo *root, Path *best_path, int flags)
 			break;
 		case T_SplitUpdate:
 			plan = create_splitupdate_plan(root, (SplitUpdatePath *) best_path);
+			break;
+		case T_SplitInsert:
+			plan = create_splitinsert_plan(root, (SplitInsertPath *)best_path);
 			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",
@@ -2903,7 +2907,7 @@ create_modifytable_plan(PlannerInfo *root, ModifyTablePath *best_path)
 			 * subroot->processed_tlist. The code to create the Split Update node
 			 * takes care to label junk columns correctly, instead.
 			 */
-			if (!is_split_update)
+			if (!is_split_update && !subroot->parse->multi_insert_result_relations)
 				apply_tlist_labeling(subplan->targetlist, subroot->processed_tlist);
 		}
 
@@ -3299,6 +3303,59 @@ create_splitupdate_plan(PlannerInfo *root, SplitUpdatePath *path)
 	return (Plan *) splitupdate;
 }
 
+/*
+ * create_splitinsert_plan
+ */
+static Plan *create_splitinsert_plan(PlannerInfo *root, SplitInsertPath *path)
+{
+	Path		*subpath = path->subpath;
+	Plan		*subplan;
+	SplitInsert	*splitinsert;
+	Relation	resultRel;
+	TupleDesc	resultDesc;
+	GpPolicy	*cdbpolicy;
+	int		lastresno;
+	Oid		*hashFuncs;
+
+	resultRel = relation_open(planner_rt_fetch(path->resultRelation, root)->relid, NoLock);
+	resultDesc = RelationGetDescr(resultRel);
+	cdbpolicy = resultRel->rd_cdbpolicy;
+
+	subplan = create_plan_recurse(root, subpath, CP_EXACT_TLIST);
+	apply_tlist_labeling(subplan->targetlist, root->processed_tlist);
+
+	splitinsert = makeNode(SplitInsert);
+	splitinsert->plan.targetlist = subplan->targetlist;
+	splitinsert->plan.qual = NIL;
+	splitinsert->plan.lefttree = subplan;
+	splitinsert->plan.righttree = NULL;
+	splitinsert->insertTargetRelid = path->multiTarget;
+
+	copy_generic_path_info(&splitinsert->plan, (Path *) path);
+	lastresno = list_length(splitinsert->plan.targetlist);
+
+	splitinsert->plan.targetlist = lappend(splitinsert->plan.targetlist, makeTargetEntry((Expr *) makeNode(InsertTargetExpr), ++lastresno, "InsertTarget", true));
+	hashFuncs = palloc(cdbpolicy->nattrs * sizeof(Oid));
+	for (int i = 0; i < cdbpolicy->nattrs; i++)
+	{
+		AttrNumber	attnum = cdbpolicy->attrs[i];
+		Oid			typeoid = resultDesc->attrs[attnum - 1].atttypid;
+		Oid			opfamily;
+
+		opfamily = get_opclass_family(cdbpolicy->opclasses[i]);
+
+		hashFuncs[i] = cdb_hashproc_in_opfamily(opfamily, typeoid);
+	}
+	splitinsert->numHashAttrs = cdbpolicy->nattrs;
+	splitinsert->hashAttnos = palloc(cdbpolicy->nattrs * sizeof(AttrNumber));
+	memcpy(splitinsert->hashAttnos, cdbpolicy->attrs, cdbpolicy->nattrs * sizeof(AttrNumber));
+	splitinsert->hashFuncs = hashFuncs;
+	splitinsert->numHashSegments = cdbpolicy->numsegments;
+
+	relation_close(resultRel, NoLock);
+
+	return (Plan *) splitinsert;
+}
 
 /*****************************************************************************
  *

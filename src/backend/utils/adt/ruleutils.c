@@ -9133,6 +9133,10 @@ get_rule_expr(Node *node, deparse_context *context,
 			appendStringInfo(buf, "DMLAction");
 			break;
 
+		case T_InsertTargetExpr:
+			appendStringInfo(buf, "InsertTarget");
+			break;
+
 		case T_AggExprId:
 			appendStringInfo(buf, "AggExprId");
 			break;

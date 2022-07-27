@@ -271,6 +271,9 @@ exprType(const Node *expr)
 		case T_DMLActionExpr:
 			type = INT4OID;
 			break;
+		case T_InsertTargetExpr:
+			type = INT4OID;
+			break;
 		case T_AggExprId:
 			type = INT4OID;
 			break;
@@ -937,6 +940,7 @@ exprCollation(const Node *expr)
 			break;
 
 		case T_DMLActionExpr:
+		case T_InsertTargetExpr:
 		case T_AggExprId:
 		case T_RowIdExpr:
 			coll = InvalidOid;
@@ -1926,6 +1930,7 @@ expression_tree_walker(Node *node,
 		case T_RangeTblRef:
 		case T_SortGroupClause:
 		case T_DMLActionExpr:
+		case T_InsertTargetExpr:
 		case T_AggExprId:
 		case T_RowIdExpr:
 			/* primitive node types with no expression subnodes */
@@ -3322,6 +3327,14 @@ expression_tree_mutator(Node *node,
 				return (Node *)new_action_expr;
 			}
 			break;
+		case T_InsertTargetExpr:
+			{
+				InsertTargetExpr *target_expr = (InsertTargetExpr *) node;
+				InsertTargetExpr *new_target_expr;
+
+				FLATCOPY(new_target_expr, target_expr, InsertTargetExpr);
+				return (Node *)new_target_expr;
+			}
 		case T_TableSampleClause:
 			{
 				TableSampleClause *tsc = (TableSampleClause *) node;

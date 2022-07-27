@@ -521,6 +521,7 @@ plan_tree_walker(Node *node,
 			break;
 
 		case T_SplitUpdate:
+		case T_SplitInsert:
 		case T_AssertOp:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;
@@ -939,6 +940,7 @@ check_collation_walker(Node *node, check_collation_context *context)
 		case T_AlternativeSubPlan:
 		case T_GroupingFunc:
 		case T_DMLActionExpr:
+		case T_InsertTargetExpr:
 			collation = exprCollation(node);
 			inputCollation = exprInputCollation(node);
 			if ((InvalidOid != collation && DEFAULT_COLLATION_OID != collation) ||

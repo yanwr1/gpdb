@@ -926,6 +926,15 @@ plan_tree_mutator(Node *node,
 				return (Node *) newSplitUpdate;
 			}
 			break;
+		case T_SplitInsert:
+			{
+				SplitInsert	*splitinsert = (SplitInsert *)node;
+				SplitInsert	*newsplitinsert;
+
+				FLATCOPY(newsplitinsert, splitinsert, SplitInsert);
+				PLANMUTATE(newsplitinsert, splitinsert);
+                                return (Node *) newsplitinsert;
+			}	
 
 			/*
 			 * The following cases are handled by expression_tree_mutator.	In

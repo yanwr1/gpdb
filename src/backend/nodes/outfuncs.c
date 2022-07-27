@@ -1348,6 +1348,25 @@ _outSplitUpdate(StringInfo str, const SplitUpdate *node)
 }
 
 /*
+ * _outSplitInsert
+ */
+static void
+_outSplitInsert(StringInfo str, const SplitInsert *node)
+{
+        WRITE_NODE_TYPE("SplitInsert");
+
+        WRITE_INT_FIELD(insertTargetColIdx);
+        WRITE_NODE_FIELD(insertTargetRelid);
+
+        WRITE_INT_FIELD(numHashSegments);
+        WRITE_INT_FIELD(numHashAttrs);
+        WRITE_ATTRNUMBER_ARRAY(hashAttnos, node->numHashAttrs);
+        WRITE_OID_ARRAY(hashFuncs, node->numHashAttrs);
+
+        _outPlanInfo(str, (Plan *) node);
+}
+
+/*
  * _outAssertOp
  */
 static void
@@ -4135,6 +4154,12 @@ _outDMLActionExpr(StringInfo str, const DMLActionExpr *node)
 }
 
 static void
+_outInsertTargetExpr(StringInfo str, const InsertTargetExpr *node)
+{
+	WRITE_NODE_TYPE("INSERTTARGETEXPR");
+}
+
+static void
 _outTriggerTransition(StringInfo str, const TriggerTransition *node)
 {
 	WRITE_NODE_TYPE("TRIGGERTRANSITION");
@@ -5671,6 +5696,9 @@ outNode(StringInfo str, const void *obj)
 			case T_SplitUpdate:
 				_outSplitUpdate(str, obj);
 				break;
+			case T_SplitInsert:
+				_outSplitInsert(str, obj);
+				break;
 			case T_AssertOp:
 				_outAssertOp(str, obj);
 				break;
@@ -6420,6 +6448,10 @@ outNode(StringInfo str, const void *obj)
 
 			case T_DMLActionExpr:
 				_outDMLActionExpr(str, obj);
+				break;
+
+			case T_InsertTargetExpr:
+				_outInsertTargetExpr(str,obj);
 				break;
 
 			case T_CreateTrigStmt:

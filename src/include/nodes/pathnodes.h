@@ -2155,6 +2155,17 @@ typedef struct SplitUpdatePath
 } SplitUpdatePath;
 
 /*
+ * SplitInsertPath
+ */
+typedef struct SplitInsertPath
+{
+	Path		path;
+	Path		*subpath;
+	Index		resultRelation;
+	List		*multiTarget;
+} SplitInsertPath;
+
+/*
  * ModifyTablePath represents performing INSERT/UPDATE/DELETE modifications
  *
  * We represent most things that will be in the ModifyTable plan node

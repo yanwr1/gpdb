@@ -135,6 +135,7 @@ static Node *convert_combining_aggrefs(Node *node, void *context);
 static Node *convert_deduplicated_aggrefs(Node *node, void *context);
 static void set_dummy_tlist_references(Plan *plan, int rtoffset);
 static void set_splitupdate_tlist_references(Plan *plan, int rtoffset);
+static void set_splitinsert_tlist_references(Plan *plan, int rtoffset);
 static indexed_tlist *build_tlist_index(List *tlist);
 static Var *search_indexed_tlist_for_var(Var *var,
 										 indexed_tlist *itlist,
@@ -1273,6 +1274,10 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 		case T_SplitUpdate:
 			Assert(plan->qual == NIL);
 			set_splitupdate_tlist_references(plan, rtoffset);
+			break;
+		case T_SplitInsert:
+			Assert(plan->qual == NIL);
+			set_splitinsert_tlist_references(plan, rtoffset);
 			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",
@@ -2497,6 +2502,55 @@ set_splitupdate_tlist_references(Plan *plan, int rtoffset)
 	/* We don't touch plan->qual here */
 }
 
+static void
+set_splitinsert_tlist_references(Plan *plan, int rtoffset)
+{
+	List	   *output_targetlist;
+	ListCell   *l;
+
+	output_targetlist = NIL;
+	foreach(l, plan->targetlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(l);
+		Var		   *oldvar = (Var *) tle->expr;
+		Var		   *newvar;
+
+		if (IsA(tle->expr, InsertTargetExpr))
+		{
+			output_targetlist = lappend(output_targetlist, tle);
+			continue;
+		}
+		else if (IsA(tle->expr, Const))
+		{
+			output_targetlist = lappend(output_targetlist, tle);
+			continue;
+		}
+
+		newvar = makeVar(OUTER_VAR,
+						 tle->resno,
+						 exprType((Node *) oldvar),
+						 exprTypmod((Node *) oldvar),
+						 exprCollation((Node *) oldvar),
+						 0);
+		if (IsA(oldvar, Var))
+		{
+			newvar->varnoold = oldvar->varno + rtoffset;
+			newvar->varoattno = oldvar->varattno;
+		}
+		else
+		{
+			newvar->varnoold = 0;		/* wasn't ever a plain Var */
+			newvar->varoattno = 0;
+		}
+
+		tle = flatCopyTargetEntry(tle);
+		tle->expr = (Expr *) newvar;
+		output_targetlist = lappend(output_targetlist, tle);
+	}
+	plan->targetlist = output_targetlist;
+
+	/* We don't touch plan->qual here */
+}
 
 
 /*

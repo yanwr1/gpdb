@@ -1113,6 +1113,9 @@ _outNode(StringInfo str, void *obj)
 			case T_SplitUpdate:
 				_outSplitUpdate(str, obj);
 				break;
+			case T_SplitInsert:
+				_outSplitInsert(str, obj);
+				break;
 			case T_AssertOp:
 				_outAssertOp(str, obj);
 				break;
@@ -1675,6 +1678,10 @@ _outNode(StringInfo str, void *obj)
 
 			case T_DMLActionExpr:
 				_outDMLActionExpr(str, obj);
+				break;
+
+			case T_InsertTargetExpr:
+				_outInsertTargetExpr(str, obj);
 				break;
 
 			case T_CreateTrigStmt:

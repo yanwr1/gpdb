@@ -1746,6 +1746,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		case T_PartitionSelector:
 			pname = sname = "Partition Selector";
 			break;
+		case T_SplitInsert:
+			pname = sname = "Split Insert";
+			break;
 		default:
 			pname = sname = "???";
 			break;

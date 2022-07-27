@@ -285,6 +285,14 @@ _readDMLActionExpr(void)
 	READ_DONE();
 }
 
+static InsertTargetExpr *
+_readInsertTargetExpr(void)
+{
+	READ_LOCALS(InsertTargetExpr);
+
+	READ_DONE();
+}
+
 /*
  *	Stuff from primnodes.h.
  */
@@ -1084,6 +1092,28 @@ _readSplitUpdate(void)
 
 	READ_DONE();
 }
+
+/*
+ * _readSplitInsert
+ */
+static SplitInsert *
+_readSplitInsert(void)
+{
+        READ_LOCALS(SplitInsert);
+
+        READ_INT_FIELD(insertTargetColIdx);
+        READ_NODE_FIELD(insertTargetRelid);
+
+        READ_INT_FIELD(numHashSegments);
+        READ_INT_FIELD(numHashAttrs);
+        READ_ATTRNUMBER_ARRAY(hashAttnos, local_node->numHashAttrs);
+        READ_OID_ARRAY(hashFuncs, local_node->numHashAttrs);
+
+        ReadCommonPlan(&local_node->plan);
+
+        READ_DONE();
+}
+
 
 /*
  * _readAssertOp
@@ -1893,6 +1923,9 @@ readNodeBinary(void)
 			case T_SplitUpdate:
 				return_value = _readSplitUpdate();
 				break;
+			case T_SplitInsert:
+				return_value = _readSplitInsert();
+				break;
 			case T_AssertOp:
 				return_value = _readAssertOp();
 				break;
@@ -2341,6 +2374,9 @@ readNodeBinary(void)
 				break;
 			case T_DMLActionExpr:
 				return_value = _readDMLActionExpr();
+				break;
+			case T_InsertTargetExpr:
+				return_value = _readInsertTargetExpr();
 				break;
 			case T_GroupingSet:
 				return_value = _readGroupingSet();
