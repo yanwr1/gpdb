@@ -129,8 +129,10 @@ ExecRecursiveUnion(PlanState *pstate)
 			/* intermediate table becomes working table */
 			node->working_table = node->intermediate_table;
 			for (int k = 1; k < node->refcount; k++)
+			{
 				/* The work table hasn't been scanned yet, it must be at start, don't need to rescan here */
 				tuplestore_alloc_read_pointer(node->working_table, EXEC_FLAG_REWIND);
+			}
 
 			/* create new empty intermediate table */
 			node->intermediate_table = tuplestore_begin_heap(false, false,

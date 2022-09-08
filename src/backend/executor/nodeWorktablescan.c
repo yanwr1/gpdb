@@ -140,8 +140,10 @@ ExecInitWorkTableScan(WorkTableScan *node, EState *estate, int eflags)
 	if (scanstate->rustate->refcount == 0)
 		scanstate->readptr = 0;
 	else
+	{
 		/* during node init, the work table hasn't been scanned yet, it must be at start, don't need to rescan here*/
 		scanstate->readptr = tuplestore_alloc_read_pointer(scanstate->rustate->working_table, EXEC_FLAG_REWIND);
+	}
 	scanstate->rustate->refcount++;
 
 	/*
