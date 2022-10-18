@@ -1,5 +1,6 @@
 #include "postgres.h"
 
+#include "access/genam.h"
 #include "access/heapam.h"
 #include "access/heapam_xlog.h"
 #include "access/nbtxlog.h"
@@ -10,12 +11,14 @@
 #include "postmaster/bgwriter.h"
 #include "replication/walsender_private.h"
 #include "replication/walsender.h"
+#include "catalog/indexing.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_tablespace.h"
 #include "pgstat.h"
 #include "storage/fd.h"
 #include "storage/lwlock.h"
 #include "utils/builtins.h"
+#include "utils/fmgroids.h"
 #include "utils/relmapper.h"
 #include "utils/varlena.h"
 
@@ -72,15 +75,12 @@ typedef struct RelationTypeData
 #define MAX_INCLUDE_RELATION_TYPES 8
 
 /*
- * GPDB_12_MERGE_FIXME: new access methods can be defined, which cannot be
- * checked using the current way by comparing predefined access method OIDs.
- * The AM handler functions need to be looked up and compared instead.
+ * new access methods can be defined, which cannot be checked by comparing
+ * predefined access method OIDs. The AM handler functions need to be looked
+ * up and compared instead.
  * E.g. to tell if it's an appendoptimized row oriented table, look up the
  * handler function for that table's AM in pg_am_handler and compare it with
  * AO_ROW_TABLE_AM_HANDLER_OID.
- *
- * If the tool is desired to be used against pre-defined access methods only,
- * then no change would be needed.
  */
 static RelationTypeData relation_types[MAX_INCLUDE_RELATION_TYPES+1] = {
 	{"btree", false},
@@ -159,27 +159,49 @@ init_relation_types(char *include_relation_types)
 static RelationTypeData
 get_relation_type_data(Oid relam, int relkind)
 {
-	/* GPDB_12_MERGE_FIXME: Why doesn't this just look up the AM name from pg_am? */
-	switch(relam)
+	Relation	rel;
+	ScanKeyData skey;
+	SysScanDesc sscan;
+	HeapTuple	tuple;
+	Oid		rd_amhandler;
+
+	rel = table_open(AccessMethodRelationId, AccessShareLock);
+
+	ScanKeyInit(&skey,
+				Anum_pg_am_oid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(relam));
+
+	sscan = systable_beginscan(rel, AmOidIndexId, true,
+							   NULL, 1, &skey);
+	tuple = systable_getnext(sscan);
+	if (!HeapTupleIsValid(tuple))
+		elog(ERROR, "could not find tuple for access method %u", relam);
+	rd_amhandler = ((Form_pg_am) GETSTRUCT(tuple))->amhandler;
+
+	systable_endscan(sscan);
+	table_close(rel, AccessShareLock);
+
+	switch(rd_amhandler)
 	{
-		case BTREE_AM_OID:
+		case F_BTHANDLER:
 			return relation_types[0];
-		case HASH_AM_OID:
+		case F_HASHHANDLER:
 			return relation_types[1];
-		case GIST_AM_OID:
+		case F_GISTHANDLER:
 			return relation_types[2];
-		case GIN_AM_OID:
+		case F_GINHANDLER:
 			return relation_types[3];
-		case BITMAP_AM_OID:
+		case F_BMHANDLER:
 			return relation_types[4];
 
-		case HEAP_TABLE_AM_OID:
+		case F_HEAP_TABLEAM_HANDLER:
 			if (relkind == RELKIND_SEQUENCE)
 				return relation_types[6];
 			else
 				return relation_types[5];
-		case AO_ROW_TABLE_AM_OID:
-		case AO_COLUMN_TABLE_AM_OID:
+		case F_AO_ROW_TABLEAM_HANDLER:
+		case F_AO_COLUMN_TABLEAM_HANDLER:
 			return relation_types[7];
 
 		default:
@@ -526,11 +548,8 @@ get_relfilenode_map()
 	{
 		Form_pg_class classtuple = (Form_pg_class) GETSTRUCT(tup);
 
-		/* GPDB_12_MERGE_FIXME: What was the point of the relstorage test here? */
 		if ((classtuple->relkind == RELKIND_VIEW
-			 || classtuple->relkind == RELKIND_COMPOSITE_TYPE)
-			/* || (classtuple->relstorage != RELSTORAGE_HEAP
-			   && !relstorage_is_ao(classtuple->relstorage)) */)
+			 || classtuple->relkind == RELKIND_COMPOSITE_TYPE))
 			continue;
 
 		/* unlogged tables do not propagate to replica servers */
