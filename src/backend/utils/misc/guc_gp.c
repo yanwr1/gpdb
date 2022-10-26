@@ -3524,7 +3524,7 @@ struct config_int ConfigureNamesInt_gp[] =
 		 * We should consider to remove the locus check in the PR 9183 and that would fix the case.
 		 * Also we should find out why orca fallback to planner for this simple case.
 		 */
-		256, 0, 65535,
+		100, 0, 65535,
 		NULL, NULL, NULL
 	},
 
@@ -4633,7 +4633,7 @@ struct config_enum ConfigureNamesEnum_gp[] =
 						 ".")
 		},
 		&Gp_interconnect_type,
-		INTERCONNECT_TYPE_UDPIFC, gp_interconnect_types,
+		INTERCONNECT_TYPE_TCP, gp_interconnect_types,
 		NULL, NULL, NULL
 	},
 
