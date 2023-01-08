@@ -407,22 +407,18 @@ CTranslatorRelcacheToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 	// get number of leaf partitions
 	if (gpdb::RelIsPartitioned(oid))
 	{
+		ListCell *lc = nullptr;
+		List *leaf_partitions = relation_get_leaf_partitions(oid);
+		num_leaf_partitions = gpdb::ListLength(leaf_partitions);
 		// FIXME_GPDB_12_MERGE_FIXME: misestimate (most likely underestimate) the number of leaf partitions
 		// ORCA doesn't really care, except to determine whether to sort before inserting
-		num_leaf_partitions = rel->rd_partdesc->nparts;
 		partition_oids = GPOS_NEW(mp) IMdIdArray(mp);
 
-		for (int i = 0; i < rel->rd_partdesc->nparts; ++i)
+		ForEach(lc, leaf_partitions)
 		{
-			Oid oid = rel->rd_partdesc->oids[i];
-			partition_oids->Append(GPOS_NEW(mp)
-									   CMDIdGPDB(IMDId::EmdidRel, oid));
-			if (gpdb::RelIsPartitioned(oid))
-			{
-				// Multi-level partitioned tables are unsupported - fall back
-				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
-						   GPOS_WSZ_LIT("Multi-level partitioned tables"));
-			}
+			OID partition_oid = lfirst_oid(lc);
+			partition_oids->Append(
+				GPOS_NEW(mp) CMDIdGPDB(IMDId::EmdidRel, partition_oid));
 		}
 	}
 

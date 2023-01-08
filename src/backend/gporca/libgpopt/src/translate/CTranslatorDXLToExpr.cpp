@@ -14,6 +14,7 @@
 #include "gpopt/translate/CTranslatorDXLToExpr.h"
 
 #include "gpos/common/CAutoTimer.h"
+#include "gpos/common/CRefCount.h"
 
 #include "gpopt/base/CAutoOptCtxt.h"
 #include "gpopt/base/CColRef.h"
@@ -596,7 +597,7 @@ CTranslatorDXLToExpr::PexprLogicalGet(const CDXLNode *dxlnode)
 		GPOS_ASSERT(EdxlopLogicalGet == edxlopid);
 
 		IMdIdArray *partition_mdids = pmdrel->ChildPartitionMdids();
-		for (ULONG ul = 0; ul < partition_mdids->Size(); ++ul)
+		/*for (ULONG ul = 0; ul < partition_mdids->Size(); ++ul)
 		{
 			IMDId *part_mdid = (*partition_mdids)[ul];
 			const IMDRelation *partrel = m_pmda->RetrieveRel(part_mdid);
@@ -607,7 +608,7 @@ CTranslatorDXLToExpr::PexprLogicalGet(const CDXLNode *dxlnode)
 				GPOS_RAISE(gpdxl::ExmaMD, gpdxl::ExmiMDObjUnsupported,
 						   GPOS_WSZ_LIT("Multi-level partitioned tables"));
 			}
-		}
+		}*/
 
 		// generate a part index id
 		ULONG part_idx_id = COptCtxt::PoctxtFromTLS()->UlPartIndexNextVal();
@@ -1474,6 +1475,7 @@ CTranslatorDXLToExpr::PexprLogicalUpdate(const CDXLNode *dxlnode)
 				   GPOS_WSZ_LIT("Update on replicated tables"));
 	}
 
+	/*
 	const IMDRelation *pmdrel = m_pmda->RetrieveRel(ptabdesc->MDId());
 	if (pmdrel->IsPartitioned())
 	{
@@ -1492,7 +1494,7 @@ CTranslatorDXLToExpr::PexprLogicalUpdate(const CDXLNode *dxlnode)
 						   GPOS_WSZ_LIT("Multi-level partitioned tables"));
 			}
 		}
-	}
+	}*/
 
 	ULONG ctid_colid = pdxlopUpdate->GetCtIdColId();
 	ULONG segid_colid = pdxlopUpdate->GetSegmentIdColId();
