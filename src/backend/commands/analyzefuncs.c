@@ -3,6 +3,7 @@
 #include "access/aocssegfiles.h"
 #include "access/table.h"
 #include "access/tuptoaster.h"
+#include "access/xact.h"
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbappendonlyam.h"
@@ -101,6 +102,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 		Relation	onerel;
 		int			attno;
 		int			outattno;
+		bool			in_outer_xact = IsInTransactionBlock(true);
 		VacuumParams	params;
 		RangeVar	   *this_rangevar;
 
@@ -139,7 +141,7 @@ gp_acquire_sample_rows(PG_FUNCTION_ARGS)
 									 pstrdup(RelationGetRelationName(onerel)),
 									 -1);
 		analyze_rel(relOid, this_rangevar, &params, NULL,
-					true, GetAccessStrategy(BAS_VACUUM), ctx);
+					in_outer_xact, GetAccessStrategy(BAS_VACUUM), ctx);
 
 		/* Count the number of non-dropped cols */
 		live_natts = 0;
