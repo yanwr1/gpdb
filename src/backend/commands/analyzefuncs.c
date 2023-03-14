@@ -80,6 +80,11 @@ bool			gp_statistics_use_fkeys = false;
  * The first four rows form the actual sample. One of the columns contained
  * an oversized array datum. The function is marked as EXECUTE ON SEGMENTS in
  * the catalog so you get one summary row *for each segment*.
+ *
+ * Also, the function is mainly used to do analyze, and it can do some updates
+ * on system table on segments. If we directly select the function as above,
+ * it can cause catalog inconsistency issue between master and segments, but
+ * next analyze will fix the issue.
  */
 Datum
 gp_acquire_sample_rows(PG_FUNCTION_ARGS)
