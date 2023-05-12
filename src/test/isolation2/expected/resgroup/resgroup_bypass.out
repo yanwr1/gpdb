@@ -1,2 +1,83 @@
--- RG FIXME: The bypass mode will be re-design in the latest future, so just remove all the test case, because this
--- file is deeply dependent on the memory model which has been removed in this PR.
+-- TEST BYPASS
+
+-- start_ignore
+DROP TABLE t_bypass;
+ERROR:  table "t_bypass" does not exist
+DROP ROLE role_bypass;
+ERROR:  role "role_bypass" does not exist
+DROP RESOURCE GROUP rg_bypass;
+ERROR:  resource group "rg_bypass" does not exist
+-- end_ignore
+
+-- create a resource group with concurrency = 1.
+CREATE RESOURCE GROUP rg_bypass WITH(cpu_hard_quota_limit=20, concurrency=1);
+CREATE
+CREATE ROLE role_bypass RESOURCE GROUP rg_bypass;
+CREATE
+
+-- Session1: pure-catalog query will be unassigned and bypassed.
+1: SET ROLE role_bypass;
+SET
+1: CREATE TABLE t_bypass(a int);
+CREATE
+1: SELECT relname FROM pg_class WHERE relname = 't_bypass';
+ relname  
+----------
+ t_bypass 
+(1 row)
+
+-- Session2 won't be hang up
+2: SET ROLE role_bypass;
+SET
+2: BEGIN;
+BEGIN
+
+-- Reach the concurrency,session3 will be hang up.
+3: SET ROLE role_bypass;
+SET
+3&: BEGIN;  <waiting ...>
+
+2: COMMIT;
+COMMIT
+3<:  <... completed>
+BEGIN
+3: COMMIT;
+COMMIT
+
+-- alter resource group's min_cost
+ALTER RESOURCE GROUP rg_bypass SET min_cost 500;
+ALTER
+
+-- Session1: for quries with cost under the min_cost limit, they will be unassigned and bypassed.
+1: SELECT * FROM t_bypass where a = 1;
+ a 
+---
+(0 rows)
+
+-- Session2 won't be hang up
+2: SET ROLE role_bypass;
+SET
+2: BEGIN;
+BEGIN
+
+-- Reach the concurrency,session3 will be hang up.
+3: SET ROLE role_bypass;
+SET
+3&: BEGIN;  <waiting ...>
+
+2: COMMIT;
+COMMIT
+3<:  <... completed>
+BEGIN
+3: COMMIT;
+COMMIT
+
+-- cleanup
+-- start_ignore
+DROP TABLE t_bypass;
+DROP
+DROP ROLE role_bypass;
+ERROR:  role "role_bypass" does not exist
+DROP RESOURCE GROUP rg_bypass;
+DROP
+-- end_ignore
