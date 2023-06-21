@@ -87,8 +87,8 @@ run_resgroup_icw_test() {
 
         cd /home/gpadmin/gpdb_src
         sed -i 's/explain_format//g' src/test/regress/greenplum_schedule
-        sed -i '330,337d' src/test/regress/greenplum_schedule
-        sed -i '1,6d' src/test/isolation2/isolation2_resqueue_schedule
+        sed -i '/resource_manager_switch/,/resource_manager_restore/d' src/test/regress/greenplum_schedule
+        echo>src/test/isolation2/isolation2_resqueue_schedule
         ./configure --prefix=/usr/local/greenplum-db-devel --disable-orca --enable-gpfdist \
          --enable-gpcloud --enable-mapreduce --enable-orafce --enable-tap-tests \
          --with-gssapi --with-libxml --with-openssl --with-perl --with-python \
