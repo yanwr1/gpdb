@@ -7071,7 +7071,7 @@ getBMIndxInfo(Archive *fout)
 
 /*
  * getOwnedSeqs
- *	  identify owned sequences and mark them as dumpable if owning table is
+ *	  identify used sequences and mark them as dumpable if using table is
  *
  * We used to do this in getTables(), but it's better to do it after the
  * index used by findTableByOid() has been set up.
@@ -7079,21 +7079,45 @@ getBMIndxInfo(Archive *fout)
 void
 getOwnedSeqs(Archive *fout, TableInfo tblinfo[], int numTables)
 {
-	int			i;
+	int		i;
+	PQExpBuffer	query = createPQExpBuffer();
+	PGresult	*res;
+	int		ntups;
+	int		i_seqid;
+	int		i_using_tab;
 
+	resetPQExpBuffer(query);
+
+	appendPQExpBufferStr(query,
+					  "SELECT "
+						"c.oid as seqid, ad.adrelid as using_tab\n"
+						"FROM pg_class c\n"
+						"JOIN pg_depend d ON (c.relkind = " CppAsString2(RELKIND_SEQUENCE)
+						" AND d.refclassid = 'pg_class'::regclass AND c.oid = d.refobjid"
+						" AND d.classid = 'pg_attrdef'::regclass)\n"
+						"JOIN pg_attrdef ad ON ad.oid=d.objid\n");
+	appendPQExpBufferStr(query,
+					  "UNION SELECT "
+						"c.oid as seqid, d.refobjid as using_tab\n"
+						"FROM pg_class c\n"
+						"JOIN pg_depend d ON (c.relkind = " CppAsString2(RELKIND_SEQUENCE)
+						" AND d.classid = 'pg_class'::regclass AND c.oid = d.objid"
+						" AND d.refclassid = 'pg_class'::regclass"
+						" AND deptype = 'i')");
+
+	res = ExecuteSqlQuery(fout, query->data, PGRES_TUPLES_OK);
+	ntups = PQntuples(res);
+
+	i_seqid = PQfnumber(res, "seqid");
+	i_using_tab =  PQfnumber(res, "using_tab");
 	/*
-	 * Force sequences that are "owned" by table columns to be dumped whenever
-	 * their owning table is being dumped.
+	 * Force sequences that are referenced by table columns to be dumped whenever
+	 * their using table is being dumped.
 	 */
-	for (i = 0; i < numTables; i++)
+	for (i = 0; i < ntups; i++)
 	{
-		TableInfo  *seqinfo = &tblinfo[i];
-		TableInfo  *owning_tab;
-
-		if (!OidIsValid(seqinfo->owning_tab))
-			continue;			/* not an owned sequence */
-
-		owning_tab = findTableByOid(seqinfo->owning_tab);
+		TableInfo  *seqinfo = findTableByOid(atooid(PQgetvalue(res, i, i_seqid)));
+		TableInfo  *owning_tab = findTableByOid(atooid(PQgetvalue(res, i, i_using_tab)));
 
 		if (owning_tab == NULL)
 			fatal("failed sanity check, parent table with OID %u of sequence with OID %u not found",
@@ -7126,7 +7150,11 @@ getOwnedSeqs(Archive *fout, TableInfo tblinfo[], int numTables)
 		 * marked by checkExtensionMembership() and this will be a no-op as
 		 * the table will be equivalently marked.
 		 */
-		seqinfo->dobj.dump = seqinfo->dobj.dump | owning_tab->dobj.dump;
+		if (table_include_oids.head != NULL && simple_oid_list_member(&table_include_oids,
+									owning_tab->dobj.catId.oid))
+		{
+			seqinfo->dobj.dump = seqinfo->dobj.dump | owning_tab->dobj.dump;
+		}
 
 		if (seqinfo->dobj.dump != DUMP_COMPONENT_NONE)
 			seqinfo->interesting = true;
