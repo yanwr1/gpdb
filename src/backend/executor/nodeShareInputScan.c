@@ -497,7 +497,19 @@ ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags)
 
 	/* Get a lease on the shared state */
 	if (node->cross_slice)
+	{
+#ifdef FAULT_INJECTOR
+		if (node->producer_slice_id == currentSliceId)
+		{
+			FaultInjector_InjectFaultIfSet("get_shareinput_reference_delay_writer",
+										   DDLNotSpecified,
+										   "",  // databaseName
+										   ""); // tableName
+		}
+#endif
 		sisstate->ref = get_shareinput_reference(node->share_id);
+		SIMPLE_FAULT_INJECTOR("get_shareinput_reference_done");
+	}
 	else
 		sisstate->ref = NULL;
 
