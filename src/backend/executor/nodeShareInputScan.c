@@ -183,7 +183,7 @@ typedef struct shareinput_local_state
 } shareinput_local_state;
 
 static shareinput_Xslice_reference *get_shareinput_reference(int share_id);
-static void release_shareinput_reference(shareinput_Xslice_reference *ref);
+static void release_shareinput_reference(shareinput_Xslice_reference *ref, bool reader_squelching);
 static void shareinput_release_callback(ResourceReleasePhase phase,
 										bool isCommit,
 										bool isTopLevel,
@@ -578,7 +578,7 @@ ExecEndShareInputScan(ShareInputScanState *node)
 				}
 			}
 		}
-		release_shareinput_reference(node->ref);
+		release_shareinput_reference(node->ref, false);
 		node->ref = NULL;
 	}
 
@@ -669,7 +669,7 @@ ExecSquelchShareInputScan(ShareInputScanState *node)
 				shareinput_reader_notifydone(node->ref, sisc->nconsumers);
 				local_state->closed = true;
 			}
-			release_shareinput_reference(node->ref);
+			release_shareinput_reference(node->ref, true);
 			node->ref = NULL;
 		}
 	}
@@ -857,16 +857,25 @@ get_shareinput_reference(int share_id)
  * Release reference to a shared scan.
  *
  * The reference count in the shared memory slot is decreased, and if
- * it reaches zero, it is destroyed.
+ * it reaches zero, it is destroyed if not in reader squelching.
+ * The reference is also removed from the list of references tracked by
+ * the current ResourceOwner.
+ *
+ * NB: We don't want to destroy the shared state if in reader squelching,
+ * because there might be other readers or writers that are yet to reference
+ * it. So leave the work to the producer.
  */
 static void
-release_shareinput_reference(shareinput_Xslice_reference *ref)
+release_shareinput_reference(shareinput_Xslice_reference *ref, bool reader_squelching)
 {
 	shareinput_Xslice_state *state = ref->xslice_state;
 
 	LWLockAcquire(ShareInputScanLock, LW_EXCLUSIVE);
+	state->refcount--;
+	elog((Debug_shareinput_xslice ? LOG : DEBUG1), "SISC (shareid=%d, slice=%d): decreased xslice state refcount to %d",
+		 state->tag.share_id, currentSliceId, state->refcount);
 
-	if (state->refcount == 1)
+	if (!reader_squelching && state->refcount == 0)
 	{
 		bool		found;
 
@@ -878,8 +887,6 @@ release_shareinput_reference(shareinput_Xslice_reference *ref)
 		elog((Debug_shareinput_xslice ? LOG : DEBUG1), "SISC (shareid=%d, slice=%d): removed xslice state",
 			 state->tag.share_id, currentSliceId);
 	}
-	else
-		state->refcount--;
 
 	dlist_delete(&ref->node);
 
@@ -913,7 +920,7 @@ shareinput_release_callback(ResourceReleasePhase phase,
 		{
 			if (isCommit)
 				elog(WARNING, "shareinput lease reference leak: lease %p still referenced", ref);
-			release_shareinput_reference(ref);
+			release_shareinput_reference(ref, false);
 		}
 	}
 }
