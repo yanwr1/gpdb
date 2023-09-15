@@ -666,7 +666,6 @@ ExecSquelchShareInputScan(ShareInputScanState *node)
 
 			if (local_state->ndone == local_state->nsharers)
 			{
-				shareinput_reader_waitready(node->ref);
 				shareinput_reader_notifydone(node->ref, sisc->nconsumers);
 				local_state->closed = true;
 			}
