@@ -92,6 +92,8 @@ typedef struct CdbDispatchCmdAsync
 	 */
 	char	   *query_text;
 	int			query_text_len;
+	int		*added;
+	WaitEvent *revents;
 
 } CdbDispatchCmdAsync;
 
@@ -223,8 +225,10 @@ cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds)
 	 */
 	ResetWaitEventSet(&DispWaitSet, TopMemoryContext, dispatchCount);
 
-	WaitEvent 		*revents = palloc(sizeof(WaitEvent) * dispatchCount);
-	int 			*added = palloc0(sizeof(int) * dispatchCount);
+	WaitEvent 		*revents = pParms->revents;
+	int 			*added = pParms->added;
+	memset(added, 0, sizeof(int) * dispatchCount);
+
 	while (true)
 	{
 		int			pollRet;
@@ -289,8 +293,6 @@ cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds)
 		}
 		while (pollRet == 0);
 	}
-	pfree(revents);
-	pfree(added);
 }
 
 /*
@@ -427,6 +429,8 @@ cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *query
 
 	size = maxResults * sizeof(CdbDispatchResult *);
 	pParms->dispatchResultPtrArray = (CdbDispatchResult **) palloc0(size);
+	pParms->added = palloc0(maxResults * sizeof(int));
+	pParms->revents = palloc(sizeof(WaitEvent) * maxResults);
 	pParms->dispatchCount = 0;
 	pParms->waitMode = DISPATCH_WAIT_NONE;
 	pParms->ackMessage = NULL;
@@ -459,8 +463,10 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 
 	int 	db_count = pParms->dispatchCount;
 	ResetWaitEventSet(&DispWaitSet, TopMemoryContext, db_count);
-	int 	*added = palloc0(db_count * sizeof(int));
-	WaitEvent *revents = palloc(sizeof(WaitEvent) * db_count);
+	int 	*added = pParms->added;
+	WaitEvent *revents = pParms->revents;
+
+	memset(added, 0, db_count * sizeof(int));
 
 	/*
 	 * OK, we are finished submitting the command to the segdbs. Now, we have
@@ -684,9 +690,6 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 		else
 			handlePollSuccess(pParms, revents, n);
 	} /* for (;;) */
-
-	pfree(revents);
-	pfree(added);
 }
 
 /*
