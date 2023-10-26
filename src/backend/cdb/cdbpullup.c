@@ -303,7 +303,12 @@ cdbpullup_findEclassInTargetList(EquivalenceClass *eclass, List *targetlist,
 					if (keyvar->varno == tlvar->varno &&
 						keyvar->varattno == tlvar->varattno &&
 						keyvar->varlevelsup == tlvar->varlevelsup)
-						return (Expr *) tlexpr;
+					{
+						if (IsA(tlexpr, RelabelType))
+							return (Expr *) tlexpr;
+						else
+							return (Expr *) em->em_expr;
+					}
 				}
 			}
 			else
