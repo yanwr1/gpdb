@@ -92,7 +92,13 @@ typedef struct CdbDispatchCmdAsync
 	 */
 	char	   *query_text;
 	int			query_text_len;
+
+	/*
+	 * added[i]: whether ith QE's segment sock has added to the DispWaitSet
+	 * when check dispathed QE's result
+	 */
 	int		*added;
+	/* WaitEvent: array of occurred events which can process results from */
 	WaitEvent *revents;
 
 } CdbDispatchCmdAsync;
