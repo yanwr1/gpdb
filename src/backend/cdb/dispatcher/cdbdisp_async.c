@@ -65,6 +65,11 @@ typedef struct CdbDispatchCmdAsync
 	 */
 	struct CdbDispatchResult **dispatchResultPtrArray;
 
+	/*
+	 * pollfd array, we will check dispatch status and dispatch results after
+	 * dispatch command to QE, each pollfd object store socket info which need
+	 * to check from.
+	 */
 	struct pollfd *fds;
 
 	/* Number of segment DBs dispatched */
