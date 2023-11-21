@@ -508,7 +508,6 @@ ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags)
 		}
 #endif
 		sisstate->ref = get_shareinput_reference(node->share_id);
-		SIMPLE_FAULT_INJECTOR("get_shareinput_reference_done");
 	}
 	else
 		sisstate->ref = NULL;
@@ -550,6 +549,8 @@ ExecEndShareInputScan(ShareInputScanState *node)
 	EState	   *estate = node->ss.ps.state;
 	ShareInputScan *sisc = (ShareInputScan *) node->ss.ps.plan;
 	shareinput_local_state *local_state = node->local_state;
+
+	SIMPLE_FAULT_INJECTOR("get_shareinput_reference_done");
 
 	/* clean up tuple table */
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);

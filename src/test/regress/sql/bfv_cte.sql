@@ -307,9 +307,9 @@ select gp_inject_fault('get_shareinput_reference_done', 'skip', dbid) from gp_se
 \! bash -c 'psql -X regression -c "set client_min_messages to log; set debug_shareinput_xslice to true; set optimizer_enable_motion_broadcast to off; WITH cte AS MATERIALIZED (SELECT * FROM sisc_t1) SELECT y.a, z.a FROM (SELECT cte1.a, cte1.b FROM cte cte1 JOIN sisc_t2 ON (cte1.a = sisc_t2.d)) y, (SELECT cte2.a, cte2.b FROM cte cte2 JOIN sisc_t2 ON (cte2.a = sisc_t2.d)) z WHERE y.b = z.b - 1;" &> /tmp/bfv_cte.out' &
 
 -- Wait for both SISC READERs to be initialized and squelched
-select gp_wait_until_triggered_fault('get_shareinput_reference_done', 2, dbid) from gp_segment_configuration where content = 2 and role = 'p';
-select gp_inject_fault_infinite('get_shareinput_reference_done', 'reset', dbid) from gp_segment_configuration where content = 2 and role = 'p';
-select gp_inject_fault_infinite('get_shareinput_reference_delay_writer', 'reset', dbid) from gp_segment_configuration where content = 2 and role = 'p';
+select gp_wait_until_triggered_fault('get_shareinput_reference_done', 1, dbid) from gp_segment_configuration where content = 2 and role = 'p';
+select gp_inject_fault('get_shareinput_reference_done', 'reset', dbid) from gp_segment_configuration where content = 2 and role = 'p';
+select gp_inject_fault('get_shareinput_reference_delay_writer', 'reset', dbid) from gp_segment_configuration where content = 2 and role = 'p';
 
 -- Wait for the query to finish
 select wait_until_query_output_to_file('/tmp/bfv_cte.out');
