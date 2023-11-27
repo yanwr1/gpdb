@@ -1417,6 +1417,11 @@ groupIncMemUsage(ResGroupData *group, ResGroupSlotData *slot, int32 chunks)
 		/* Calculate the global over used chunks */
 		int32 deltaGlobalSharedMemUsage = Max(0, deltaSharedMemUsage - oldSharedFree);
 
+		/*
+		 * reserve memory from global only when have no group shared free space,
+		 * otherwise will return an incorrect overused chunk if others have already
+		 * overuse the global freechunks
+		 */
 		if (deltaGlobalSharedMemUsage > 0)
 		{
 			/* freeChunks -= deltaGlobalSharedMemUsage and get the new value */
@@ -1430,6 +1435,12 @@ groupIncMemUsage(ResGroupData *group, ResGroupSlotData *slot, int32 chunks)
 	/* Add the chunks to memUsage in group */
 	pg_atomic_add_fetch_u32((pg_atomic_uint32 *) &group->memUsage,
 							chunks);
+
+	if (SIMPLE_FAULT_INJECTOR("group_set_overused_freechunk") == FaultInjectorTypeSkip)
+	{
+		pg_atomic_write_u32(&pResGroupControl->freeChunks, -5);
+		SIMPLE_FAULT_INJECTOR("group_overused_freechunks");
+	}
 
 	return globalOveruse;
 }
@@ -1505,6 +1516,7 @@ groupIncSlotMemUsage(ResGroupData *group, ResGroupSlotData *slot)
 		/* Calculate the global over used chunks */
 		int32 deltaGlobalSharedMemUsage = Max(0, slotSharedMemUsage - oldSharedFree);
 
+		/* reserve memory from global only when have no group shared free space */
 		if (deltaGlobalSharedMemUsage > 0)
 		{
 			/* freeChunks -= deltaGlobalSharedMemUsage and get the new value */
