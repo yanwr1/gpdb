@@ -458,8 +458,10 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 	db_count = pParms->dispatchCount;
 	fds = (struct pollfd *) palloc(db_count * sizeof(struct pollfd));
 
+#ifdef FAULT_INJECTOR
 	if (SIMPLE_FAULT_INJECTOR("alloc_chunk_during_dispatch") == FaultInjectorTypeSkip)
 		palloc(1 << VmemTracker_GetChunkSizeInBits());
+#endif
 
 	/*
 	 * OK, we are finished submitting the command to the segdbs. Now, we have

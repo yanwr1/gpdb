@@ -1436,11 +1436,13 @@ groupIncMemUsage(ResGroupData *group, ResGroupSlotData *slot, int32 chunks)
 	pg_atomic_add_fetch_u32((pg_atomic_uint32 *) &group->memUsage,
 							chunks);
 
+#ifdef FAULT_INJECTOR
 	if (SIMPLE_FAULT_INJECTOR("group_set_overused_freechunk") == FaultInjectorTypeSkip)
 	{
 		pg_atomic_write_u32(&pResGroupControl->freeChunks, -5);
 		SIMPLE_FAULT_INJECTOR("group_overused_freechunks");
 	}
+#endif
 
 	return globalOveruse;
 }
