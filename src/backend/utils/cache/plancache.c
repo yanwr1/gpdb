@@ -912,9 +912,9 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 {
 	CachedPlan *plan;
 	List	   *plist;
-	bool		snapshot_set;
-	bool		is_transient;
-	bool		is_oneoff;
+	bool		snapshot_set = false;
+	bool		is_transient = false;
+	bool		is_oneoff = false;
 	MemoryContext plan_context;
 	MemoryContext oldcxt = CurrentMemoryContext;
 	ListCell   *lc;
@@ -952,7 +952,6 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	 * If a snapshot is already set (the normal case), we can just use that
 	 * for planning.  But if it isn't, and we need one, install one.
 	 */
-	snapshot_set = false;
 	if (!ActiveSnapshotSet() &&
 		plansource->raw_parse_tree &&
 		analyze_requires_snapshot(plansource->raw_parse_tree))
@@ -1007,7 +1006,6 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	 */
 	plan->planRoleId = GetUserId();
 	plan->dependsOnRole = plansource->dependsOnRLS;
-	is_transient = false;
 	foreach(lc, plist)
 	{
 		PlannedStmt *plannedstmt = lfirst_node(PlannedStmt, lc);
