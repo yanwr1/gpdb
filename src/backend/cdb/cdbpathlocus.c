@@ -347,8 +347,14 @@ cdbpathlocus_from_subquery(struct PlannerInfo *root,
 					distkey = cdb_make_distkey_for_expr(root, (Node *) var, opfamily);
 					distkeys = lappend(distkeys, distkey);
 				}
+
 				if (distkeys && !expr_cell)
-					CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
+				{
+					if (flow->locustype == CdbLocusType_Hashed)
+						CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
+					else
+						CdbPathLocus_MakeHashedOJ(&locus, distkeys, numsegments);
+				}
 				else
 					CdbPathLocus_MakeStrewn(&locus, numsegments);
 				break;
