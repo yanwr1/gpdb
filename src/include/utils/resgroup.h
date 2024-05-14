@@ -189,6 +189,7 @@ extern void ResGroupDropFinish(const ResourceGroupCallbackContext *callbackCtx,
 extern void ResGroupCreateOnAbort(const ResourceGroupCallbackContext *callbackCtx);
 extern void ResGroupAlterOnCommit(const ResourceGroupCallbackContext *callbackCtx);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
+extern void check_and_unassign_from_resgroup(PlannedStmt* stmt);
 
 /*
  * Get resource group id of my proc.

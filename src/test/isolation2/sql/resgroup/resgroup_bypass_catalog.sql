@@ -38,6 +38,55 @@ RETURNS integer AS $$ SELECT 1; $$ LANGUAGE SQL;
 5: COMMIT;
 6<:
 
+ALTER RESOURCE GROUP rg_test_catalog SET CONCURRENCY 1;
+
+-- Session1: pure-catalog query will be unassigned and bypassed.
+1: SET ROLE role_test_catalog;
+1: SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'suspend', 1, current_setting('gp_session_id')::int);
+1&: SELECT relname FROM pg_class where relname='pg_class';
+
+SELECT gp_wait_until_triggered_fault('check_and_unassign_from_resgroup_entry', 1, 1);
+
+2: SET ROLE role_test_catalog;
+2&: BEGIN;
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'suspend', 1, sess_id)
+FROM pg_stat_activity WHERE rsgname = 'rg_test_catalog' AND waiting = false;
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'reset', 1);
+
+2<:
+2: COMMIT;
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'reset', 1);
+
+1<:
+1q:
+2q:
+
+-- simple query (no rangetable and no function) will be unassigned and bypassed
+1: SET ROLE role_test_catalog;
+1: SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'suspend', 1, current_setting('gp_session_id')::int);
+1&: SELECT 1;
+
+SELECT gp_wait_until_triggered_fault('check_and_unassign_from_resgroup_entry', 1, 1);
+
+2: SET ROLE role_test_catalog;
+2&: BEGIN;
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'suspend', 1, sess_id)
+FROM pg_stat_activity WHERE rsgname = 'rg_test_catalog' AND waiting = false;
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'reset', 1);
+
+2<:
+2: COMMIT;
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'reset', 1);
+
+1<:
+1q:
+2q:
 -- test for Github Issue 15416
 -- following SQLs should not throw "unrecognized node type" error.
 create table t_15416(s int);

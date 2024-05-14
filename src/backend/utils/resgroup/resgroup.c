@@ -409,6 +409,8 @@ static bool groupIsNotDropped(const ResGroupData *group);
 static bool groupWaitQueueFind(ResGroupData *group, const PGPROC *proc);
 #endif /* USE_ASSERT_CHECKING */
 
+static bool is_pure_catalog_plan(PlannedStmt *stmt);
+
 /*
  * Operations of memory for resource groups with vmtracker memory auditor.
  */
@@ -5194,4 +5196,125 @@ ResGroupGetGroupAvailableMem(Oid groupId)
 				   group->memSharedGranted - group->memSharedUsage;
 	LWLockRelease(ResGroupLock);
 	return availMem;
+}
+
+/*
+ * After getting the plan of a query, it must be inside
+ * a transaction which means it must already hold a resgroup
+ * slot. For some cases, we can unassign to save a concurrency
+ * slot and other resources (just like bypass):
+ *   - only happen on QD
+ *   - for explicit transaction block (begin; end), don't do it
+ *     because for following SQLs it will not try to enter resgroup
+ *   - pure catalog query or very simple query (no rangetable and
+ *     no function)
+ */
+void
+check_and_unassign_from_resgroup(PlannedStmt* stmt)
+{
+	bool         inFunction;
+	ResGroupInfo groupInfo;
+
+	SIMPLE_FAULT_INJECTOR("check_and_unassign_from_resgroup_entry");
+
+	if (Gp_role != GP_ROLE_DISPATCH ||
+		!IsNormalProcessingMode() ||
+		!IsResGroupActivated() ||
+		bypassedGroup != NULL)
+		return;
+
+	/*
+	 * Don't need to consider the sql commands inside the UDF, they will also
+	 * be bypassed or use the same resgroup as the outer query.
+	 */
+	inFunction = already_under_executor_run();
+	if (IsInTransactionChain(!inFunction))
+		return;
+
+	/*
+	 * If none of the bypass(unassign) rule satisfy, return directly
+	 */
+	if (!(gp_resource_group_bypass_catalog_query && is_pure_catalog_plan(stmt)))
+		return;
+
+	/* Unassign from resgroup and bypass */
+	UnassignResGroup();
+
+	do {
+		decideResGroup(&groupInfo);
+	} while (!groupIncBypassedRef(&groupInfo));
+
+	bypassedGroup = groupInfo.group;
+	bypassedGroup->totalExecuted++;
+	pgstat_report_resgroup(0, bypassedGroup->groupId);
+	bypassedSlot.group = groupInfo.group;
+	bypassedSlot.groupId = groupInfo.groupId;
+	bypassedSlot.memQuota = 0;
+	bypassedSlot.memUsage = 0;
+
+	/* Attach self memory usage to resgroup */
+	groupIncMemUsage(bypassedGroup, &bypassedSlot, self->memUsage);
+
+	/* Record the bypass memory limit of current query */
+	self->bypassMemoryLimit = self->memUsage + RESGROUP_BYPASS_MODE_MEMORY_LIMIT_ON_QD;
+
+	ResGroupOps_AssignGroup(bypassedGroup->groupId,
+				&bypassedGroup->caps,
+				MyProcPid);
+	groupSetMemorySpillRatio(&bypassedGroup->caps);
+
+	SIMPLE_FAULT_INJECTOR("check_and_unassign_from_resgroup_end");
+}
+
+/*
+ * Given a planned statement, check if it is pure catalog query or a very simple query.
+ * Return true only when:
+ *   - there must be no motion nodes
+ *   - there is no FuncExpr in target list
+ *   - range table cannot contain FUNCTION or TABLEFUNC
+ *   - range table must be catalog if it is RTE_RELATION
+ */
+static bool
+is_pure_catalog_plan(PlannedStmt *stmt)
+{
+	ListCell *rtable;
+	List     *func_tag;
+
+	if (stmt->nMotionNodes != 0)
+		return false;
+
+	if (stmt->planTree->targetlist != NIL)
+	{
+		int pos = 0;
+		func_tag = list_make1_int(T_FuncExpr);
+		pos = find_nodes((Node *) (stmt->planTree->targetlist), func_tag);
+		list_free(func_tag);
+
+		if (pos >= 0)
+			return false;
+	}
+
+	foreach(rtable, stmt->rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(rtable);
+
+		if (rte->rtekind == RTE_FUNCTION ||
+			rte->rtekind == RTE_TABLEFUNCTION)
+			return false;
+
+		if (rte->rtekind != RTE_RELATION)
+			continue;
+
+		if (rte->relkind == RELKIND_MATVIEW)
+			return false;
+
+		if (rte->relkind == RELKIND_VIEW)
+			continue;
+
+		// is catalog table
+		if(rte->relid >= FirstBootstrapObjectId)
+			return false;
+	}
+
+	return true;
 }

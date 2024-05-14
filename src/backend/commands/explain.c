@@ -35,6 +35,7 @@
 #include "utils/lsyscache.h"
 #include "utils/metrics_utils.h"
 #include "utils/rel.h"
+#include "utils/resgroup.h"
 #include "utils/snapmgr.h"
 #include "utils/tuplesort.h"
 #include "utils/xml.h"
@@ -577,6 +578,7 @@ ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 	if (into)
 		eflags |= GetIntoRelEFlags(into);
 
+	check_and_unassign_from_resgroup(queryDesc->plannedstmt);
 	queryDesc->plannedstmt->query_mem =
 		ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 

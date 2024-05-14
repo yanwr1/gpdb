@@ -68,6 +68,110 @@ COMMIT
  1        
 (2 rows)
 
+ALTER RESOURCE GROUP rg_test_catalog SET CONCURRENCY 1;
+ALTER
+
+-- Session1: pure-catalog query will be unassigned and bypassed.
+1: SET ROLE role_test_catalog;
+SET
+1: SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'suspend', 1, current_setting('gp_session_id')::int);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+1&: SELECT relname FROM pg_class where relname='pg_class';  <waiting ...>
+
+SELECT gp_wait_until_triggered_fault('check_and_unassign_from_resgroup_entry', 1, 1);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
+(1 row)
+
+2: SET ROLE role_test_catalog;
+SET
+2&: BEGIN;  <waiting ...>
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'suspend', 1, sess_id) FROM pg_stat_activity WHERE rsgname = 'rg_test_catalog' AND waiting = false;
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+2<:  <... completed>
+BEGIN
+2: COMMIT;
+COMMIT
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+1<:  <... completed>
+ relname  
+----------
+ pg_class 
+(1 row)
+1q: ... <quitting>
+2q: ... <quitting>
+
+-- simple query (no rangetable and no function) will be unassigned and bypassed
+1: SET ROLE role_test_catalog;
+SET
+1: SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'suspend', 1, current_setting('gp_session_id')::int);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+1&: SELECT 1;  <waiting ...>
+
+SELECT gp_wait_until_triggered_fault('check_and_unassign_from_resgroup_entry', 1, 1);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
+(1 row)
+
+2: SET ROLE role_test_catalog;
+SET
+2&: BEGIN;  <waiting ...>
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'suspend', 1, sess_id) FROM pg_stat_activity WHERE rsgname = 'rg_test_catalog' AND waiting = false;
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_entry', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+2<:  <... completed>
+BEGIN
+2: COMMIT;
+COMMIT
+
+SELECT gp_inject_fault('check_and_unassign_from_resgroup_end', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+1<:  <... completed>
+ ?column? 
+----------
+ 1        
+(1 row)
+1q: ... <quitting>
+2q: ... <quitting>
 -- test for Github Issue 15416
 -- following SQLs should not throw "unrecognized node type" error.
 create table t_15416(s int);
