@@ -26,6 +26,7 @@
 #include "executor/execUtils.h"
 #include "executor/nodeMotion.h"
 #include "lib/binaryheap.h"
+#include "utils/resgroup.h"
 #include "utils/tuplesort.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
@@ -150,6 +151,15 @@ ExecMotion(PlanState *pstate)
 			tuple = execMotionSortedReceiver(node);
 		else
 			tuple = execMotionUnsortedReceiver(node);
+
+		if (node->earlyByPass)
+		{
+			node->earlyByPass = false;
+
+			bypass_query_on_qd();
+
+			SIMPLE_FAULT_INJECTOR("unassign_and_bypass_during_motion");
+		}
 
 		/*
 		 * We tell the upper node as if this was the end of tuple stream if
@@ -698,6 +708,7 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	motionstate->stopRequested = false;
 	motionstate->hashExprs = NIL;
 	motionstate->cdbhash = NULL;
+	motionstate->earlyByPass = false;
 
 	/* Look up the sending and receiving gang's slice table entries. */
 	sendSlice = &sliceTable->slices[node->motionID];

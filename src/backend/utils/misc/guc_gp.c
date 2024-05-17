@@ -2909,6 +2909,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_resgroup_enable_early_bypass", PGC_SUSET, RESOURCES,
+			gettext_noop("Enable consider early bypass query in resource group."),
+			NULL
+		},
+		&gp_resgroup_enable_early_bypass,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
 		{"stats_queue_level", PGC_SUSET, STATS_COLLECTOR,
 			gettext_noop("Collects resource queue-level statistics on database activity."),
 			NULL

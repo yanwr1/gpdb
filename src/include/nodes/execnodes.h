@@ -2455,6 +2455,8 @@ typedef struct SortState
 
 } SortState;
 
+#define IsSort(nodeptr) (IsA(nodeptr, SortState))
+
 /* ---------------------
  *	AggState information
  *
@@ -2560,6 +2562,8 @@ typedef struct AggState
 	/* stream entries when out of memory instead of spilling to disk */
 	bool		streaming;
 } AggState;
+
+#define IsHashAgg(nodeptr) (IsA(nodeptr,AggState) && ((AggState *)(nodeptr))->aggstrategy == AGG_HASHED)
 
 typedef struct TupleSplitState
 {
@@ -2988,6 +2992,8 @@ typedef struct MotionState
 	Oid		   *outputFunArray;	/* output functions for each column (debug only) */
 
 	int			numInputSegs;	/* the number of segments on the sending slice */
+
+	bool		earlyByPass;	/* can this query in qd early bypass current resgroup after fetch tuple form qe */
 } MotionState;
 
 /* ----------------

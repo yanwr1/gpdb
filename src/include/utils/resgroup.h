@@ -101,6 +101,7 @@ extern int						gp_resgroup_memory_query_fixed_mem;
 extern int						gp_resgroup_memory_policy_auto_fixed_mem;
 extern bool						gp_resgroup_print_operator_memory_limits;
 extern bool						gp_resgroup_debug_wait_queue;
+extern bool						gp_resgroup_enable_early_bypass;
 
 extern int gp_resource_group_cpu_priority;
 extern double gp_resource_group_cpu_limit;
@@ -186,6 +187,7 @@ extern void ResGroupCreateOnAbort(const ResourceGroupCallbackContext *callbackCt
 extern void ResGroupAlterOnCommit(const ResourceGroupCallbackContext *callbackCtx);
 extern void ResGroupCheckForDrop(Oid groupId, char *name);
 extern void check_and_unassign_from_resgroup(PlannedStmt* stmt);
+extern void bypass_query_on_qd(void);
 extern uint64 ResourceGroupGetQueryMemoryLimit(void);
 
 /*

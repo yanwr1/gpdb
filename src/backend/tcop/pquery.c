@@ -77,6 +77,7 @@ static uint64 DoPortalRunFetch(Portal portal,
 							   DestReceiver *dest);
 static void DoPortalRewind(Portal portal);
 static void PortalBackoffEntryInit(Portal portal);
+static void can_early_bypass_query(Portal portal, bool isTopLevel);
 
 /*
  * CreateQueryDesc
@@ -982,6 +983,8 @@ PortalRun(Portal portal, int64 count, bool isTopLevel, bool run_once,
 				 */
 				if (portal->strategy != PORTAL_ONE_SELECT && !portal->holdStore)
 					FillPortalStore(portal, isTopLevel);
+
+				can_early_bypass_query(portal, isTopLevel);
 
 				/*
 				 * Now fetch desired portion of results.
@@ -2103,4 +2106,43 @@ EnsurePortalSnapshotExists(void)
 	PushActiveSnapshotWithLevel(GetTransactionSnapshot(), portal->createLevel);
 	/* PushActiveSnapshotWithLevel might have copied the snapshot */
 	portal->portalSnapshot = GetActiveSnapshot();
+}
+
+/*
+ * For some query which one's plan like this
+ *     Gather Motion
+ *          Sort
+ *             ...
+ * after executing sort, most of computation have finished, it only
+ * send data to client which means CPU usage is low, we can early
+ * unassign the current resgroup slot and other transactions can
+ * come in.
+ *      -- only happen on QD
+ *      -- enabled when gp_resgroup_enable_early_bypass is set to on
+ *      -- not in a transaction block(like begin/end)
+ *      -- query's plan mode is
+ *         a: QD's top node is Motion
+ *         b: QE's top node is Sort or Hashagg
+ */
+static void
+can_early_bypass_query(Portal portal, bool isTopLevel)
+{
+	if (Gp_role == GP_ROLE_DISPATCH
+			&& IsResGroupEnabled() && ResGroupIsAssigned()
+			&& gp_resgroup_enable_early_bypass
+			&& portal->sourceTag == T_SelectStmt
+			&& !IsInTransactionBlock(isTopLevel)
+			&& portal->queryDesc)
+	{
+		PlanState *planstate = portal->queryDesc->planstate;
+
+		if (planstate && IsA(planstate, MotionState))
+		{
+			MotionState *node = castNode(MotionState, planstate);
+			PlanState *outerNode = outerPlanState(planstate);
+
+			if(IsSort(outerNode) || IsHashAgg(outerNode))
+				node->earlyByPass = true;
+		}
+	}
 }

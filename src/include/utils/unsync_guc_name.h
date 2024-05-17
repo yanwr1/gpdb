@@ -217,6 +217,7 @@
 		"gp_reject_internal_tcp_connection",
 		"gp_reject_percent_threshold",
 		"gp_reraise_signal",
+		"gp_resgroup_enable_early_bypass",
 		"gp_resgroup_memory_policy",
 		"gp_resgroup_memory_query_fixed_mem",
 		"gp_resource_group_bypass",

@@ -74,6 +74,7 @@ bool						gp_log_resgroup_memory = false;
 int							gp_resgroup_memory_query_fixed_mem;
 int							gp_resgroup_memory_policy_auto_fixed_mem;
 bool						gp_resgroup_print_operator_memory_limits = false;
+bool						gp_resgroup_enable_early_bypass = false;
 
 bool						gp_resgroup_debug_wait_queue = true;
 int							gp_resource_group_queuing_timeout = 0;
@@ -142,6 +143,8 @@ struct ResGroupSlotData
 	ResGroupSlotData	*next;
 
 	ResGroupCaps	caps;
+
+	bool		earlyBypassed; /* only used by bypassedSlot, always false for other case */
 };
 
 /*
@@ -153,6 +156,7 @@ struct ResGroupData
 
 	volatile int	nRunning;			/* number of running trans */
 	volatile int	nRunningBypassed;	/* number of running trans in bypass mode */
+	volatile int    nRunningEarlyUnassigned;       /* number of running trans be early unassigned during execute motion and run in bypass mode */
 	int64			totalExecuted;		/* total number of executed trans */
 	int64			totalQueued;		/* total number of queued trans	*/
 	int64			totalQueuedTimeMs;	/* total queue time, in milliseconds */
@@ -234,8 +238,8 @@ static ResGroupSlotData *groupGetSlot(ResGroupData *group);
 static void groupPutSlot(ResGroupData *group, ResGroupSlotData *slot);
 static Oid decideResGroupId(void);
 static void decideResGroup(ResGroupInfo *pGroupInfo);
-static bool groupIncBypassedRef(ResGroupInfo *pGroupInfo);
-static void groupDecBypassedRef(ResGroupData *group);
+static bool groupIncBypassedRef(ResGroupInfo *pGroupInfo, bool earlyUnassigned);
+static void groupDecBypassedRef(ResGroupData *group, bool earlyUnassigned);
 static ResGroupSlotData *groupAcquireSlot(ResGroupInfo *pGroupInfo, bool isMoveQuery);
 static void groupReleaseSlot(ResGroupData *group, ResGroupSlotData *slot, bool isMoveQuery);
 static void addTotalQueueDuration(ResGroupData *group);
@@ -1220,7 +1224,7 @@ decideResGroup(ResGroupInfo *pGroupInfo)
  * Return true if the operation is done, or false if the group is dropped.
  */
 static bool
-groupIncBypassedRef(ResGroupInfo *pGroupInfo)
+groupIncBypassedRef(ResGroupInfo *pGroupInfo, bool earlyUnassigned)
 {
 	ResGroupData	*group = pGroupInfo->group;
 	bool			result = false;
@@ -1238,6 +1242,9 @@ groupIncBypassedRef(ResGroupInfo *pGroupInfo)
 	result = true;
 	pg_atomic_add_fetch_u32((pg_atomic_uint32 *) &group->nRunningBypassed, 1);
 
+	if (earlyUnassigned)
+		pg_atomic_add_fetch_u32((pg_atomic_uint32 *) &group->nRunningEarlyUnassigned, 1);
+
 end:
 	LWLockRelease(ResGroupLock);
 	return result;
@@ -1247,9 +1254,11 @@ end:
  * Decrease the bypassed ref count
  */
 static void
-groupDecBypassedRef(ResGroupData *group)
+groupDecBypassedRef(ResGroupData *group, bool earlyUnassigned)
 {
 	pg_atomic_sub_fetch_u32((pg_atomic_uint32 *) &group->nRunningBypassed, 1);
+	if (earlyUnassigned)
+		pg_atomic_sub_fetch_u32((pg_atomic_uint32 *) &group->nRunningEarlyUnassigned, 1);
 }
 
 /*
@@ -1557,7 +1566,7 @@ AssignResGroupOnCoordinator(void)
 		 */
 		do {
 			decideResGroup(&groupInfo);
-		} while (!groupIncBypassedRef(&groupInfo));
+		} while (!groupIncBypassedRef(&groupInfo, false));
 
 		/* Record which resgroup we are running in */
 		bypassedGroup = groupInfo.group;
@@ -1569,6 +1578,7 @@ AssignResGroupOnCoordinator(void)
 		/* Initialize the fake slot */
 		bypassedSlot.group = groupInfo.group;
 		bypassedSlot.groupId = groupInfo.groupId;
+		bypassedSlot.earlyBypassed = false;
 
 		/* Add into cgroup */
 		cgroupOpsRoutine->attachcgroup(bypassedGroup->groupId, MyProcPid,
@@ -1622,7 +1632,7 @@ UnassignResGroup(void)
 	{
 		/* bypass mode ref count is only maintained on qd */
 		if (Gp_role == GP_ROLE_DISPATCH)
-			groupDecBypassedRef(bypassedGroup);
+			groupDecBypassedRef(bypassedGroup, bypassedSlot.earlyBypassed);
 
 		/* Reset the fake slot */
 		bypassedSlot.group = NULL;
@@ -3641,7 +3651,16 @@ ResourceGroupGetQueryMemoryLimit(void)
 		return stateMem;
 	}
 
-	queryMem = (uint64)(resgLimit *1024L *1024L / caps->concurrency);
+	/*
+	 * When enabled gp_resgroup_enable_early_bypass, some query can early unassign
+	 * current resgroup before commit transaction, but the last slice of these query
+	 * haven't release memory yet. Do restriction for this case:
+	 * set queryMem = memory_quota/(concurrency+nRunningEarlyUnassigned)
+	 *
+	 * As nRunningEarlyUnassigned=0 when gp_resgroup_enable_early_bypass set to off,
+	 * don't need to check the guc here.
+	 */
+	queryMem = (uint64)(resgLimit *1024L *1024L / (caps->concurrency + self->group->nRunningEarlyUnassigned));
 	LWLockRelease(ResGroupLock);
 
 	/*
@@ -3697,13 +3716,14 @@ check_and_unassign_from_resgroup(PlannedStmt* stmt)
 
 	do {
 		decideResGroup(&groupInfo);
-	} while (!groupIncBypassedRef(&groupInfo));
+	} while (!groupIncBypassedRef(&groupInfo, false));
 
 	bypassedGroup = groupInfo.group;
 	bypassedGroup->totalExecuted++;
 	pgstat_report_resgroup(bypassedGroup->groupId);
 	bypassedSlot.group = groupInfo.group;
 	bypassedSlot.groupId = groupInfo.groupId;
+	bypassedSlot.earlyBypassed = false;
 
 	cgroupOpsRoutine->attachcgroup(bypassedGroup->groupId, MyProcPid,
 								   bypassedGroup->caps.cpuMaxPercent == CPU_MAX_PERCENT_DISABLED);
@@ -3885,4 +3905,28 @@ can_bypass_direct_dispatch_plan(PlannedStmt *stmt)
 		return stmt->numSlices == 1 && stmt->slices[0].directDispatch.isDirectDispatch;
 	else
 		return false;
+}
+
+void
+bypass_query_on_qd(void)
+{
+	ResGroupInfo groupInfo;
+
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+
+	/* Unassign from resgroup and bypass */
+	UnassignResGroup();
+
+	do {
+		decideResGroup(&groupInfo);
+	} while (!groupIncBypassedRef(&groupInfo, true));
+
+	bypassedGroup = groupInfo.group;
+	bypassedGroup->totalExecuted++;
+	pgstat_report_resgroup(bypassedGroup->groupId);
+	bypassedSlot.group = groupInfo.group;
+	bypassedSlot.groupId = groupInfo.groupId;
+	bypassedSlot.earlyBypassed = true;
+
+	return;
 }
