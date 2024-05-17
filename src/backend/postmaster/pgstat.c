@@ -3223,6 +3223,7 @@ pgstat_bestart(void)
 	lbeentry.st_progress_command = PROGRESS_COMMAND_INVALID;
 	lbeentry.st_progress_command_target = InvalidOid;
 	lbeentry.st_rsgid = InvalidOid;
+	lbeentry.st_bypass_rsg = false;
 
 	/*
 	 * we don't zero st_progress_param here to save cycles; nobody should
@@ -3569,6 +3570,7 @@ pgstat_report_resgroup(Oid groupid)
 	beentry->st_changecount++;
 
 	beentry->st_rsgid = groupid;
+	beentry->st_bypass_rsg = groupid == InvalidOid ? false : ResGroupIsBypassed();
 	beentry->st_changecount++;
 	Assert((beentry->st_changecount & 1) == 0);
 }

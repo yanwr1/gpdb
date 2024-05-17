@@ -137,6 +137,7 @@ typedef enum
 	RES_GROUP_STAT_TOTAL_QUEUED,
 	RES_GROUP_STAT_TOTAL_QUEUE_TIME,
 	RES_GROUP_STAT_CPU_USAGE,
+	RES_GROUP_STAT_NRUNNINGBYPASSED,
 } ResGroupStatType;
 
 /*
@@ -177,6 +178,7 @@ extern void UnassignResGroup(void);
 extern void SwitchResGroupOnSegment(const char *buf, int len);
 
 extern bool ResGroupIsAssigned(void);
+extern bool ResGroupIsBypassed(void);
 
 /* Retrieve statistic information of type from resource group */
 extern Datum ResGroupGetStat(Oid groupId, ResGroupStatType type);

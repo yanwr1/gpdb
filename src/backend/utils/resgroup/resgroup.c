@@ -908,6 +908,9 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type)
 		case RES_GROUP_STAT_NRUNNING:
 			result = Int32GetDatum(group->nRunning + group->nRunningBypassed);
 			break;
+		case RES_GROUP_STAT_NRUNNINGBYPASSED:
+			result = Int32GetDatum(group->nRunningBypassed);
+			break;
 		case RES_GROUP_STAT_NQUEUEING:
 			result = Int32GetDatum(group->waitProcs.size);
 			break;
@@ -3929,4 +3932,10 @@ bypass_query_on_qd(void)
 	bypassedSlot.earlyBypassed = true;
 
 	return;
+}
+
+bool
+ResGroupIsBypassed(void)
+{
+	return bypassedGroup != NULL;
 }

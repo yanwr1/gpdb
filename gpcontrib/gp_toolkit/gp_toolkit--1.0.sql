@@ -1758,13 +1758,17 @@ GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
 --              Resource group runtime status information
 --
 --------------------------------------------------------------------------------
+CREATE TYPE gp_toolkit.__numbypassed AS (groupid oid, num_runningbypassed int4);
+
+CREATE FUNCTION gp_toolkit.__gp_resgroup_get_numbypassed() RETURNS SETOF gp_toolkit.__numbypassed AS 'gp_toolkit.so','pg_resgroup_get_num_runningbypassed' LANGUAGE C STRICT;
 
 CREATE VIEW gp_toolkit.gp_resgroup_status AS
-    SELECT s.groupid, r.rsgname as groupname, s.num_running, s.num_queueing,
+    SELECT s.groupid, r.rsgname as groupname, s.num_running, n.num_runningbypassed, s.num_queueing,
            s.num_queued, s.num_executed, s.total_queue_duration
     FROM pg_resgroup_get_status(null) AS s,
+         gp_toolkit.__gp_resgroup_get_numbypassed() AS n,
          pg_resgroup AS r
-    WHERE s.groupid = r.oid;
+    WHERE s.groupid = r.oid and s.groupid = n.groupid;
 
 GRANT SELECT ON gp_toolkit.gp_resgroup_status TO public;
 

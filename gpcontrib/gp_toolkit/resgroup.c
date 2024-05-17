@@ -25,6 +25,103 @@ PG_MODULE_MAGIC;
 
 static List* getIOLimitStats(Relation rel_resgroup_caps);
 
+PG_FUNCTION_INFO_V1(pg_resgroup_get_num_runningbypassed);
+Datum
+pg_resgroup_get_num_runningbypassed(PG_FUNCTION_ARGS)
+{
+	FuncCallContext *funcctx;
+	Oid *ctx;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		MemoryContext oldcontext;
+		TupleDesc	tupdesc;
+		int			nattr = 2;
+
+		funcctx = SRF_FIRSTCALL_INIT();
+
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		tupdesc = CreateTemplateTupleDesc(nattr);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "groupid", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "num_runningbypassed", INT4OID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		if (IsResGroupActivated())
+		{
+			Relation	pg_resgroup_rel;
+			SysScanDesc	sscan;
+			HeapTuple	tuple;
+
+			int ctxsize = sizeof(Oid) * (MaxResourceGroups - 1);
+
+			funcctx->user_fctx = palloc(ctxsize);
+			ctx = (Oid *) funcctx->user_fctx;
+
+			/*
+			 * others may be creating/dropping resource group concurrently,
+			 * block until creating/dropping finish to avoid inconsistent
+			 * resource group metadata
+			 */
+			pg_resgroup_rel = table_open(ResGroupRelationId, ExclusiveLock);
+
+			sscan = systable_beginscan(pg_resgroup_rel, InvalidOid, false,
+									   NULL, 0, NULL);
+			while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
+			{
+				Oid			oid = ((Form_pg_resgroup) GETSTRUCT(tuple))->oid;
+
+				Assert(funcctx->max_calls < MaxResourceGroups);
+				ctx[funcctx->max_calls++] = oid;
+			}
+			systable_endscan(sscan);
+
+			table_close(pg_resgroup_rel, ExclusiveLock);
+		}
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	/* stuff done on every call of the function */
+	funcctx = SRF_PERCALL_SETUP();
+	ctx = (Oid *) funcctx->user_fctx;
+
+	if (funcctx->call_cntr < funcctx->max_calls)
+	{
+		/* for each row */
+		Datum		values[2];
+		bool		nulls[2];
+		HeapTuple	tuple;
+		Oid		groupId = ctx[funcctx->call_cntr];
+		char		statVal[MAXDATELEN + 1];
+
+		MemSet(values, 0, sizeof(values));
+		MemSet(nulls, 0, sizeof(nulls));
+		MemSet(statVal, 0, sizeof(statVal));
+
+		values[0] = ObjectIdGetDatum(groupId);
+
+		if (Gp_role == GP_ROLE_UTILITY)
+		{
+			nulls[1] = true;
+		}
+		else
+		{
+			values[1] = ResGroupGetStat(groupId, RES_GROUP_STAT_NRUNNINGBYPASSED);
+		}
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+
+		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
+	}
+	else
+	{
+		/* nothing left */
+		SRF_RETURN_DONE(funcctx);
+	}
+}
+
 PG_FUNCTION_INFO_V1(pg_resgroup_get_iostats);
 Datum
 pg_resgroup_get_iostats(PG_FUNCTION_ARGS)
